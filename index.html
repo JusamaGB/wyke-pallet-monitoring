@@ -207,6 +207,9 @@
   .wiz.warn .wiz-head { background: var(--warn-bg); }
   .wiz-vatwarn { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 700; font-size: 13px; text-align: center; }
   .wiz-vatwarn:empty { display: none; }
+  .wiz-vatwarn.hard { background: var(--err-bg); color: var(--err); }
+  .topbar-date { color: #fff; font-weight: 700; font-size: 15px; background: rgba(255,255,255,.16); padding: 6px 12px; border-radius: 8px; white-space: nowrap; }
+  .date-confirm-row { display: flex; gap: 8px; align-items: center; }
   .btn.big { padding: 14px 18px; font-size: 16px; }
   .btn[disabled] { opacity: .45; cursor: not-allowed; }
   .btn.flag { background: var(--warn); color: #fff; border-color: var(--warn); }
@@ -246,6 +249,7 @@
 <header class="topbar">
   <h1>Wyke <span class="tag">Pallet &amp; Cheese Monitoring</span></h1>
   <div class="spacer"></div>
+  <span class="topbar-date" id="topbarDate" style="display:none;"></span>
   <div class="controls">
     <button class="btn ghost" id="btnNewSheet">+ New sheet</button>
     <button class="btn ghost" id="btnFinishDay">Finish day</button>
@@ -256,9 +260,12 @@
 </header>
 
 <div class="sheetbar">
-  <div class="field">
+  <div class="field" id="dateField">
     <label>Date of manufacture (sheet)</label>
-    <input type="date" id="sheetDate" />
+    <div class="date-confirm-row">
+      <input type="date" id="sheetDate" />
+      <button class="btn" id="btnConfirmDate">Confirm</button>
+    </div>
   </div>
   <div class="field">
     <label>Cheese type</label>
@@ -462,7 +469,7 @@ function blankRow() {
     code:"", reason:"", corrections:"", signedBy:"", signedAt:"", flagged:false, flagReason:"" };
 }
 function newSheet(date) {
-  return { id: uid(), date, cheeseType: "", changeoverUsed: false, createdAt: Date.now(), restartReason: "", rows: [ blankRow() ] };
+  return { id: uid(), date, cheeseType: "", changeoverUsed: false, dateConfirmed: false, createdAt: Date.now(), restartReason: "", rows: [ blankRow() ] };
 }
 
 function currentSheet() {
@@ -521,6 +528,8 @@ function palletFlags(rows) {
 const els = {
   rows: document.getElementById("rows"),
   sheetDate: document.getElementById("sheetDate"),
+  dateField: document.getElementById("dateField"),
+  topbarDate: document.getElementById("topbarDate"),
   cheeseType: document.getElementById("cheeseType"),
   cheeseLock: document.getElementById("cheeseLock"),
   cheeseHint: document.getElementById("cheeseHint"),
@@ -589,8 +598,21 @@ function recompute() {
 
 /* ---------- Sheet picker ---------- */
 function renderSheetPicker() {
-  els.sheetDate.value = currentSheet().date;
+  const sheet = currentSheet();
+  els.sheetDate.value = sheet.date;
+  if (sheet.dateConfirmed) {
+    els.dateField.style.display = "none";
+    els.topbarDate.style.display = "";
+    els.topbarDate.textContent = fmtSheetDate(sheet.date);
+  } else {
+    els.dateField.style.display = "";
+    els.topbarDate.style.display = "none";
+  }
   renderCheeseField();
+}
+function fmtSheetDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString(undefined, { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
 }
 
 function switchSheet(id) {
@@ -656,9 +678,6 @@ function submitPin() {
 /* ---------- Toolbar buttons ---------- */
 const NEW_SHEET_SOON_MS = 2 * 60 * 60 * 1000; // 2 hours
 document.getElementById("btnNewSheet").onclick = () => {
-  const d = prompt("New sheet — date of manufacture (YYYY-MM-DD):", todayISO());
-  if (!d) return;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { alert("Please use YYYY-MM-DD format."); return; }
   let reason = "";
   const recent = state.sheets
     .filter(s => s.createdAt && s.rows.some(rowHasData))
@@ -669,7 +688,7 @@ document.getElementById("btnNewSheet").onclick = () => {
     reason = reason.trim();
     if (!reason) { alert("An explanation is required to start a new sheet this soon."); return; }
   }
-  const s = newSheet(d);
+  const s = newSheet(todayISO());
   s.restartReason = reason;
   state.sheets.push(s);
   state.currentSheetId = s.id;
@@ -686,6 +705,7 @@ document.getElementById("btnFinishDay").onclick = () => {
   save(); renderSheetPicker(); renderRows();
 };
 els.sheetDate.onchange = (e) => { if (e.target.value) { currentSheet().date = e.target.value; save(); renderSheetPicker(); } };
+document.getElementById("btnConfirmDate").onclick = () => { currentSheet().dateConfirmed = true; save(); renderSheetPicker(); };
 
 function renderCheeseField() {
   const sheet = currentSheet();
@@ -865,8 +885,10 @@ function renderWizard() {
   } else if (wiz.step === 4) {
     const temp = { blocksA:d.blocksA, blocksB:d.blocksB, reason:d.reason };
     const st = rowStatus(temp);
+    const sideErr = palletSideError(d);
     let banner;
-    if (st.kind === "err") banner = `<div class="wiz-banner err">Over 60 (${st.total}) — must be corrected before signing</div>`;
+    if (sideErr) banner = `<div class="wiz-banner err">${escapeHtml(sideErr)}</div>`;
+    else if (st.kind === "err") banner = `<div class="wiz-banner err">Over 60 (${st.total}) — must be corrected before signing</div>`;
     else if (st.kind === "warn") banner = `<div class="wiz-banner warn">Under 60 (${st.total}) — enter a reason below</div>`;
     else if (st.kind === "ok") banner = `<div class="wiz-banner ok">Totals 60 — good to sign</div>`;
     else banner = `<div class="wiz-banner warn">No blocks entered yet</div>`;
@@ -885,7 +907,7 @@ function renderWizard() {
       <label class="q" style="margin-top:6px;">Enter your PIN to sign</label>
       <input type="text" class="wiz-pin" id="wizPin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••" />
       <div class="wiz-err" id="wizErr"></div>`;
-    const vatWarned = wizVatWarnings().length > 0;
+    const vatWarned = !palletSideError(d) && wizVatWarnings().length > 0;
     foot = backBtn + `<button class="btn big ${vatWarned ? "flag" : "primary"}" id="wizSignBtn">${vatWarned ? "Save as flagged error" : "Sign &amp; save"}</button>`;
   }
 
@@ -957,7 +979,7 @@ function updateWizSignState() {
   const d = wiz.data;
   const st = rowStatus({ blocksA:d.blocksA, blocksB:d.blocksB, reason:d.reason });
   const signBtn = document.getElementById("wizSignBtn"); if (!signBtn) return;
-  signBtn.disabled = (st.kind === "err") || (st.kind === "idle") || (st.kind === "warn" && st.reasonRequired);
+  signBtn.disabled = !!palletSideError(d) || (st.kind === "err") || (st.kind === "idle") || (st.kind === "warn" && st.reasonRequired);
 }
 function wizVatWarnings() {
   const d = wiz.data;
@@ -996,15 +1018,31 @@ function wizVatWarnings() {
   }
   return [...new Set(warns)];
 }
+// Hard error: a side has blocks without a VAT number, or a VAT number without blocks.
+function palletSideError(d) {
+  const aVat = (d.vatA || "").trim() !== "";
+  const bVat = (d.vatB || "").trim() !== "";
+  const aBlk = (parseInt(d.blocksA, 10) || 0) > 0;
+  const bBlk = (parseInt(d.blocksB, 10) || 0) > 0;
+  if (aBlk && !aVat) return "Blocks A entered but VAT A is empty — set which VAT they came from.";
+  if (bBlk && !bVat) return "Blocks B entered but VAT B is empty — set which VAT they came from.";
+  if (aVat && !aBlk) return "VAT A set but no blocks logged from it.";
+  if (bVat && !bBlk) return "VAT B set but no blocks logged from it.";
+  return null;
+}
 function applyWizWarn() {
   const card = document.getElementById("wizCard");
-  if (!card || !wiz) return [];
+  if (!card || !wiz) return;
   const active = (wiz.step === 2 || wiz.step === 4);
-  const warns = active ? wizVatWarnings() : [];
-  card.classList.toggle("warn", warns.length > 0);
+  const sideErr = active ? palletSideError(wiz.data) : null;
+  const warns = (active && !sideErr) ? wizVatWarnings() : [];
   const el = document.getElementById("wizVatWarn");
-  if (el) el.innerHTML = warns.length ? ("Incorrect input — " + escapeHtml(warns.join("; ")) + ". Check this before saving.") : "";
-  return warns;
+  if (el) {
+    if (sideErr && wiz.step === 2) { el.className = "wiz-vatwarn hard"; el.innerHTML = escapeHtml(sideErr); }
+    else if (warns.length) { el.className = "wiz-vatwarn"; el.innerHTML = "Incorrect input — " + escapeHtml(warns.join("; ")) + ". Check this before saving."; }
+    else { el.className = "wiz-vatwarn"; el.innerHTML = ""; }
+  }
+  card.classList.toggle("warn", warns.length > 0);
 }
 
 function wizNext() {
@@ -1016,12 +1054,15 @@ function wizNext() {
       return;
     }
   }
+  if (wiz.step === 2 && palletSideError(d)) { applyWizWarn(); return; }
   if (wiz.step < WIZ_TOTAL - 1) { wiz.step++; renderWizard(); }
 }
 
 function wizSign() {
   const d = wiz.data;
   const errEl = document.getElementById("wizErr");
+  const sideErr = palletSideError(d);
+  if (sideErr) { errEl.textContent = sideErr; return; }
   const st = rowStatus({ blocksA:d.blocksA, blocksB:d.blocksB, reason:d.reason });
   if (st.kind === "err") { errEl.textContent = "Total is over 60 — go back and correct the blocks."; return; }
   if (st.kind === "idle") { errEl.textContent = "Enter the blocks before signing."; return; }
