@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Wyke — Pallet &amp; Cheese Monitoring</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --panel: #ffffff;
+    --line: #d9dee4;
+    --ink: #1d2733;
+    --muted: #6b7785;
+    --brand: #1d5b3f;        /* Wyke green-ish */
+    --brand-ink: #ffffff;
+    --ok: #1b8a4b;
+    --ok-bg: #e6f6ec;
+    --warn: #a86a00;
+    --warn-bg: #fff4dc;
+    --err: #b3261e;
+    --err-bg: #fdecea;
+    --accent: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+  }
+  header.topbar {
+    background: var(--brand);
+    color: var(--brand-ink);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header.topbar h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+  header.topbar .tag { font-size: 12px; opacity: .85; font-weight: 400; }
+  .spacer { flex: 1 1 auto; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .controls label { font-size: 12px; opacity: .9; }
+  button, select, input { font-family: inherit; font-size: 14px; }
+  .btn {
+    background: #ffffff; color: var(--ink); border: 1px solid var(--line);
+    padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 600;
+  }
+  .btn:hover { background: #f0f2f4; }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.05); }
+  .btn.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,.5); }
+  .btn.ghost:hover { background: rgba(255,255,255,.12); }
+  .btn.danger { color: var(--err); border-color: #e7b4b1; background:#fff; }
+  .btn.small { padding: 4px 8px; font-size: 12px; }
+
+  .sheetbar {
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 10px 16px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap;
+  }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+  .field input[type=date], .field input[type=text], .field select {
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 150px; background:#fff;
+  }
+  .summary { display: flex; gap: 14px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .stat { background: #f0f3f6; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; text-align: center; min-width: 86px; }
+  .stat .n { font-size: 18px; font-weight: 700; line-height: 1; }
+  .stat .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .stat.flag .n { color: var(--err); }
+
+  .tablewrap { padding: 12px 16px 80px; overflow-x: auto; }
+  table.grid { border-collapse: collapse; width: 100%; background: var(--panel); }
+  table.grid th, table.grid td { border: 1px solid var(--line); padding: 0; text-align: center; }
+  table.grid thead th {
+    background: #eef1f4; color: var(--ink); font-size: 11px; text-transform: uppercase;
+    letter-spacing: .4px; padding: 6px 6px; position: sticky; top: 0; z-index: 2;
+  }
+  table.grid thead tr.group th { background: #e2e7ec; }
+  .colnum { width: 42px; color: var(--muted); font-size: 12px; }
+  table.grid td input, table.grid td select {
+    border: none; background: transparent; width: 100%; padding: 8px 6px; text-align: center;
+    font-size: 14px; outline: none;
+  }
+  table.grid td input:focus, table.grid td select:focus { background: #eef5ff; box-shadow: inset 0 0 0 2px var(--accent); }
+  table.grid td.num input { text-align: center; }
+  td.total { font-weight: 700; font-size: 15px; }
+  tr.r-ok td.total { background: var(--ok-bg); color: var(--ok); }
+  tr.r-warn td.total { background: var(--warn-bg); color: var(--warn); }
+  tr.r-err td.total { background: var(--err-bg); color: var(--err); }
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 10px; text-transform: uppercase; letter-spacing: .3px; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.err { background: var(--err-bg); color: var(--err); }
+  .badge.idle { background: #eef1f4; color: var(--muted); }
+
+  input.flagged { box-shadow: inset 0 0 0 2px var(--warn); background: var(--warn-bg) !important; }
+  td.reason input { font-size: 13px; text-align: left; }
+  td.reason.required input { background: var(--warn-bg) !important; box-shadow: inset 0 0 0 2px var(--warn); }
+  td.reason.required input::placeholder { color: var(--warn); }
+  td.corrections input { font-size: 13px; text-align: left; }
+
+  .codecell { display: flex; flex-direction: column; align-items: stretch; }
+  .codecell .meaning { font-size: 11px; color: var(--muted); padding: 0 6px 5px; min-height: 14px; line-height: 1.2; }
+
+  td.sign { min-width: 110px; }
+  .signbtn { width: 100%; border: none; background: transparent; padding: 8px 6px; cursor: pointer; color: var(--accent); font-weight: 600; }
+  .signbtn:hover { background: #eef5ff; }
+  .signed { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .signed small { display: block; font-weight: 400; font-size: 10px; color: var(--muted); }
+
+  td.del { width: 36px; }
+  .delbtn { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; padding: 6px; }
+  .delbtn:hover { color: var(--err); }
+
+  /* Modal */
+  .modal-back { position: fixed; inset: 0; background: rgba(15,23,32,.45); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal-back.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; padding: 22px; width: 340px; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+  .modal h3 { margin: 0 0 4px; }
+  .modal p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  .pinrow { display: flex; gap: 8px; }
+  .pinrow input { flex: 1; font-size: 22px; text-align: center; letter-spacing: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+  .modal .err-msg { color: var(--err); font-size: 13px; min-height: 18px; margin-top: 8px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+  /* Settings drawer */
+  .drawer-back { position: fixed; inset: 0; background: rgba(15,23,32,.45); display: none; z-index: 40; }
+  .drawer-back.open { display: block; }
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100%; width: 460px; max-width: 92vw; background: #fff;
+    box-shadow: -10px 0 40px rgba(0,0,0,.2); padding: 20px; overflow-y: auto; transform: translateX(100%);
+    transition: transform .2s ease; z-index: 41;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer h2 { margin: 0 0 12px; font-size: 18px; }
+  .drawer section { margin-bottom: 26px; }
+  .drawer h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 0 0 8px; }
+  .editlist { width: 100%; border-collapse: collapse; }
+  .editlist th { text-align: left; font-size: 11px; color: var(--muted); padding: 4px; }
+  .editlist td { padding: 3px 4px; }
+  .editlist input { width: 100%; border: 1px solid var(--line); border-radius: 5px; padding: 6px; }
+  .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.4; }
+  .closex { position: absolute; top: 14px; right: 16px; border: none; background: transparent; font-size: 22px; cursor: pointer; color: var(--muted); }
+
+  .empty-note { padding: 40px; text-align: center; color: var(--muted); }
+
+  @media print {
+    header.topbar .controls, .btn, .delbtn, .signbtn, .summary .hideprint { display: none !important; }
+    .tablewrap { padding: 0; }
+    body { background: #fff; font-size: 11px; }
+    table.grid thead th { position: static; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Wyke <span class="tag">Pallet &amp; Cheese Monitoring</span></h1>
+  <div class="spacer"></div>
+  <div class="controls">
+    <button class="btn ghost" id="btnPrint">Print</button>
+    <button class="btn ghost" id="btnExport">Export CSV</button>
+    <button class="btn ghost" id="btnSettings">Settings</button>
+  </div>
+</header>
+
+<div class="sheetbar">
+  <div class="field">
+    <label>Date of manufacture (sheet)</label>
+    <input type="date" id="sheetDate" />
+  </div>
+  <div class="field">
+    <label>Open saved sheet</label>
+    <select id="sheetPicker"></select>
+  </div>
+  <div class="field">
+    <label>&nbsp;</label>
+    <button class="btn" id="btnNewSheet">+ New sheet</button>
+  </div>
+  <div class="field">
+    <label>Cheese type</label>
+    <select id="cheeseType">
+      <option value="">—</option>
+      <option>Mature</option>
+      <option>Extra Mature</option>
+      <option>Vintage</option>
+      <option>Red Mature</option>
+      <option>PWA (Organic)</option>
+    </select>
+  </div>
+
+  <div class="summary">
+    <div class="stat"><div class="n" id="statPallets">0</div><div class="l">Pallets</div></div>
+    <div class="stat"><div class="n" id="statBlocks">0</div><div class="l">Total blocks</div></div>
+    <div class="stat flag"><div class="n" id="statFlags">0</div><div class="l">Flagged</div></div>
+  </div>
+</div>
+
+<div class="tablewrap">
+  <table class="grid" id="grid">
+    <thead>
+      <tr class="group">
+        <th rowspan="2" class="colnum">#</th>
+        <th rowspan="2">Pallet&nbsp;No.</th>
+        <th colspan="2">VAT number</th>
+        <th colspan="2">Blocks</th>
+        <th rowspan="2">Total<br/>/ 60</th>
+        <th rowspan="2">Status</th>
+        <th rowspan="2">Reason<br/>(if&nbsp;under&nbsp;60)</th>
+        <th rowspan="2">Keep&nbsp;Separate</th>
+        <th rowspan="2">Initials</th>
+        <th rowspan="2">Corrections</th>
+        <th rowspan="2"></th>
+      </tr>
+      <tr>
+        <th>VAT&nbsp;A</th><th>VAT&nbsp;B</th>
+        <th>A</th><th>B</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div style="margin-top:10px; display:flex; gap:8px;">
+    <button class="btn" id="btnAddRow">+ Add row</button>
+    <button class="btn small" id="btnAdd10">+ 10 rows</button>
+    <span class="hint" style="align-self:center;">Pallet target is 60 blocks. Pallet numbers must run consecutively (+1). Sign each row with your PIN.</span>
+  </div>
+</div>
+
+<!-- PIN modal -->
+<div class="modal-back" id="pinBack">
+  <div class="modal">
+    <h3 id="pinTitle">Sign row</h3>
+    <p id="pinSub">Enter your PIN to sign.</p>
+    <div class="pinrow">
+      <input type="password" id="pinInput" inputmode="numeric" maxlength="8" autocomplete="off" />
+    </div>
+    <div class="err-msg" id="pinErr"></div>
+    <div class="modal-actions">
+      <button class="btn" id="pinCancel">Cancel</button>
+      <button class="btn primary" id="pinOk">Sign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings drawer -->
+<div class="drawer-back" id="drawerBack"></div>
+<div class="drawer" id="drawer">
+  <button class="closex" id="drawerClose">&times;</button>
+  <h2>Settings</h2>
+
+  <section>
+    <h3>People &amp; PINs</h3>
+    <table class="editlist" id="usersTable">
+      <thead><tr><th>Name</th><th>Initials</th><th>PIN</th><th></th></tr></thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+    <button class="btn small" id="addUser" style="margin-top:8px;">+ Add person</button>
+    <p class="hint">PINs are stored locally in this browser for the proof of concept only — this is not secure login. A real deployment would use proper authentication.</p>
+  </section>
+
+  <section>
+    <h3>Keep Separate codes</h3>
+    <table class="editlist" id="codesTable">
+      <thead><tr><th>Code</th><th>Meaning (one line)</th><th></th></tr></thead>
+      <tbody id="codesBody"></tbody>
+    </table>
+    <button class="btn small" id="addCode" style="margin-top:8px;">+ Add code</button>
+    <p class="hint">These are placeholder examples — replace with Wyke's real Keep Separate codes.</p>
+  </section>
+
+  <section>
+    <h3>Data</h3>
+    <button class="btn small danger" id="clearSheet">Clear current sheet rows</button>
+    <p class="hint">All data lives in this browser only (localStorage). Use Export CSV to keep a copy or move it elsewhere.</p>
+  </section>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- Storage ---------- */
+const LS_KEY = "wyke_pallet_monitor_v1";
+
+const todayISO = () => new Date().toISOString().slice(0,10);
+
+function seedState() {
+  return {
+    users: [
+      { name: "J. Doe",   initials: "JD", pin: "0000" },
+      { name: "A. Smith", initials: "AS", pin: "1111" },
+      { name: "M. Jones", initials: "MJ", pin: "2222" }
+    ],
+    codes: [
+      { code: "KS-01", meaning: "Allergen review pending" },
+      { code: "KS-02", meaning: "Customer-specific hold" },
+      { code: "KS-03", meaning: "QA sample / awaiting result" },
+      { code: "KS-04", meaning: "Rework / re-grade required" }
+    ],
+    sheets: {},
+    currentDate: todayISO()
+  };
+}
+
+let state = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return seedState();
+    const s = JSON.parse(raw);
+    if (!s.users || !s.codes || !s.sheets) return seedState();
+    if (!s.currentDate) s.currentDate = todayISO();
+    return s;
+  } catch (e) { return seedState(); }
+}
+function save() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch (e) { console.warn("save failed", e); }
+}
+
+function blankRow() {
+  return { id: "r" + Math.random().toString(36).slice(2,9),
+    pallet:"", vatA:"", vatB:"", blocksA:"", blocksB:"",
+    code:"", reason:"", corrections:"", signedBy:"", signedAt:"" };
+}
+
+function getSheet(date) {
+  if (!state.sheets[date]) {
+    state.sheets[date] = { date, rows: [ blankRow() ], cheeseType: "" };
+  }
+  if (!state.sheets[date].rows.length) state.sheets[date].rows.push(blankRow());
+  return state.sheets[date];
+}
+function currentSheet() { return getSheet(state.currentDate); }
+
+/* ---------- Validation ---------- */
+const PALLET_TARGET = 60;
+
+function rowTotal(r) {
+  const a = parseInt(r.blocksA, 10);
+  const b = parseInt(r.blocksB, 10);
+  const av = isNaN(a) ? 0 : a;
+  const bv = isNaN(b) ? 0 : b;
+  return av + bv;
+}
+function rowHasData(r) {
+  return r.pallet !== "" || r.blocksA !== "" || r.blocksB !== "" ||
+         r.vatA !== "" || r.vatB !== "" || r.code !== "" || r.signedBy !== "";
+}
+// status: idle | ok | warn | err  (+ reasonRequired flag)
+function rowStatus(r) {
+  const total = rowTotal(r);
+  const hasBlocks = (r.blocksA !== "" || r.blocksB !== "");
+  if (!hasBlocks) return { kind: "idle", total, reasonRequired: false, msg: "" };
+  if (total > PALLET_TARGET) return { kind: "err",  total, reasonRequired: false, msg: "Over 60 — review" };
+  if (total < PALLET_TARGET) {
+    const ok = r.reason.trim().length > 0;
+    return { kind: "warn", total, reasonRequired: !ok, msg: ok ? "Short — reason logged" : "Reason required" };
+  }
+  return { kind: "ok", total, reasonRequired: false, msg: "OK" };
+}
+// Returns map id -> { flagged:bool, expected:number|null }
+function palletFlags(rows) {
+  const out = {};
+  let prev = null;
+  for (const r of rows) {
+    const cur = parseInt(r.pallet, 10);
+    if (r.pallet === "" || isNaN(cur)) { out[r.id] = { flagged:false, expected: prev===null?null:prev+1 }; continue; }
+    if (prev === null) { out[r.id] = { flagged:false, expected:null }; }
+    else { out[r.id] = { flagged: cur !== prev+1, expected: prev+1 }; }
+    prev = cur;
+  }
+  return out;
+}
+
+/* ---------- Rendering ---------- */
+const els = {
+  rows: document.getElementById("rows"),
+  sheetDate: document.getElementById("sheetDate"),
+  sheetPicker: document.getElementById("sheetPicker"),
+  cheeseType: document.getElementById("cheeseType"),
+  statPallets: document.getElementById("statPallets"),
+  statBlocks: document.getElementById("statBlocks"),
+  statFlags: document.getElementById("statFlags"),
+};
+
+function codeOptionsHTML(selected) {
+  let h = '<option value="">—</option>';
+  for (const c of state.codes) {
+    const sel = c.code === selected ? " selected" : "";
+    h += `<option value="${escapeAttr(c.code)}"${sel}>${escapeHtml(c.code)}</option>`;
+  }
+  return h;
+}
+function codeMeaning(code) {
+  const c = state.codes.find(x => x.code === code);
+  return c ? c.meaning : "";
+}
+
+function rowHTML(r, idx) {
+  return `<tr data-id="${r.id}">
+    <td class="colnum">${idx+1}</td>
+    <td class="num"><input data-f="pallet" inputmode="numeric" value="${escapeAttr(r.pallet)}" placeholder="—" /></td>
+    <td class="num"><input data-f="vatA" value="${escapeAttr(r.vatA)}" placeholder="—" /></td>
+    <td class="num"><input data-f="vatB" value="${escapeAttr(r.vatB)}" placeholder="—" /></td>
+    <td class="num"><input data-f="blocksA" inputmode="numeric" value="${escapeAttr(r.blocksA)}" placeholder="0" /></td>
+    <td class="num"><input data-f="blocksB" inputmode="numeric" value="${escapeAttr(r.blocksB)}" placeholder="0" /></td>
+    <td class="total"><span class="tval"></span></td>
+    <td><span class="badge idle stbadge">—</span></td>
+    <td class="reason"><input data-f="reason" value="${escapeAttr(r.reason)}" placeholder="" /></td>
+    <td>
+      <div class="codecell">
+        <select data-f="code">${codeOptionsHTML(r.code)}</select>
+        <span class="meaning"></span>
+      </div>
+    </td>
+    <td class="sign"></td>
+    <td class="corrections"><input data-f="corrections" value="${escapeAttr(r.corrections)}" placeholder="" /></td>
+    <td class="del"><button class="delbtn" title="Delete row">&times;</button></td>
+  </tr>`;
+}
+
+function renderRows() {
+  const sheet = currentSheet();
+  els.rows.innerHTML = sheet.rows.map((r,i)=>rowHTML(r,i)).join("");
+  recompute();
+}
+
+// Update computed display elements without touching inputs (keeps focus)
+function recompute() {
+  const sheet = currentSheet();
+  const flags = palletFlags(sheet.rows);
+  let pallets = 0, blocks = 0, flagged = 0;
+
+  const trs = els.rows.querySelectorAll("tr");
+  trs.forEach(tr => {
+    const id = tr.getAttribute("data-id");
+    const r = sheet.rows.find(x => x.id === id);
+    if (!r) return;
+    const st = rowStatus(r);
+    const total = st.total;
+
+    // total cell
+    tr.querySelector(".tval").textContent = (r.blocksA==="" && r.blocksB==="") ? "" : total;
+    tr.classList.remove("r-ok","r-warn","r-err");
+    if (st.kind === "ok") tr.classList.add("r-ok");
+    else if (st.kind === "warn") tr.classList.add("r-warn");
+    else if (st.kind === "err") tr.classList.add("r-err");
+
+    // status badge
+    const badge = tr.querySelector(".stbadge");
+    badge.className = "badge stbadge " + (st.kind==="idle"?"idle":st.kind);
+    badge.textContent = st.kind==="idle" ? "—" : st.msg;
+
+    // reason cell required highlight
+    const reasonTd = tr.querySelector("td.reason");
+    const reasonInput = reasonTd.querySelector("input");
+    if (st.reasonRequired) { reasonTd.classList.add("required"); reasonInput.placeholder = "Reason required"; }
+    else { reasonTd.classList.remove("required"); reasonInput.placeholder = ""; }
+
+    // pallet flag
+    const palletInput = tr.querySelector('input[data-f="pallet"]');
+    const pf = flags[id];
+    if (pf && pf.flagged) {
+      palletInput.classList.add("flagged");
+      palletInput.title = "Expected " + pf.expected + " (must run consecutively)";
+    } else {
+      palletInput.classList.remove("flagged");
+      palletInput.title = "";
+    }
+
+    // code meaning
+    tr.querySelector(".codecell .meaning").textContent = r.code ? codeMeaning(r.code) : "";
+
+    // sign cell
+    const signTd = tr.querySelector("td.sign");
+    if (r.signedBy) {
+      signTd.innerHTML = `<span class="signed">${escapeHtml(r.signedBy)}<small>${escapeHtml(fmtTime(r.signedAt))}</small></span>`;
+    } else {
+      signTd.innerHTML = `<button class="signbtn">Sign…</button>`;
+    }
+
+    // tallies
+    if (r.pallet !== "" && !isNaN(parseInt(r.pallet,10))) pallets++;
+    if (r.blocksA !== "" || r.blocksB !== "") blocks += total;
+    if (st.kind === "err" || st.reasonRequired || (pf && pf.flagged)) flagged++;
+  });
+
+  els.statPallets.textContent = pallets;
+  els.statBlocks.textContent = blocks;
+  els.statFlags.textContent = flagged;
+}
+
+/* ---------- Sheet picker ---------- */
+function renderSheetPicker() {
+  const dates = Object.keys(state.sheets).sort().reverse();
+  if (!dates.includes(state.currentDate)) dates.unshift(state.currentDate);
+  els.sheetPicker.innerHTML = dates.map(d => {
+    const n = state.sheets[d] ? state.sheets[d].rows.filter(rowHasData).length : 0;
+    const sel = d === state.currentDate ? " selected" : "";
+    return `<option value="${d}"${sel}>${d} (${n})</option>`;
+  }).join("");
+  els.sheetDate.value = state.currentDate;
+  els.cheeseType.value = currentSheet().cheeseType || "";
+}
+
+function switchSheet(date) {
+  state.currentDate = date;
+  getSheet(date);
+  save();
+  renderSheetPicker();
+  renderRows();
+}
+
+/* ---------- Events: grid ---------- */
+els.rows.addEventListener("input", (e) => {
+  const f = e.target.getAttribute("data-f");
+  if (!f) return;
+  const tr = e.target.closest("tr");
+  const id = tr.getAttribute("data-id");
+  const sheet = currentSheet();
+  const r = sheet.rows.find(x => x.id === id);
+  if (!r) return;
+  r[f] = e.target.value;
+
+  // auto-append a fresh row when the last row gains data
+  const isLast = sheet.rows[sheet.rows.length-1].id === id;
+  if (isLast && rowHasData(r)) { sheet.rows.push(blankRow()); appendRowDOM(); }
+
+  save();
+  recompute();
+});
+
+els.rows.addEventListener("change", (e) => {
+  if (e.target.getAttribute("data-f") === "code") {
+    // handled by input listener too, but ensure save
+    save(); recompute();
+  }
+});
+
+els.rows.addEventListener("click", (e) => {
+  if (e.target.classList.contains("delbtn")) {
+    const tr = e.target.closest("tr");
+    deleteRow(tr.getAttribute("data-id"));
+  } else if (e.target.classList.contains("signbtn")) {
+    const tr = e.target.closest("tr");
+    openPin(tr.getAttribute("data-id"));
+  } else if (e.target.closest(".signed")) {
+    // click an existing signature to re-sign / clear
+    const tr = e.target.closest("tr");
+    openPin(tr.getAttribute("data-id"));
+  }
+});
+
+function appendRowDOM() {
+  const sheet = currentSheet();
+  const r = sheet.rows[sheet.rows.length-1];
+  const idx = sheet.rows.length-1;
+  els.rows.insertAdjacentHTML("beforeend", rowHTML(r, idx));
+  recompute();
+}
+
+function deleteRow(id) {
+  const sheet = currentSheet();
+  if (sheet.rows.length <= 1) { // keep at least one
+    sheet.rows = [ blankRow() ];
+  } else {
+    sheet.rows = sheet.rows.filter(x => x.id !== id);
+  }
+  save();
+  renderRows();
+}
+
+/* ---------- PIN signing ---------- */
+let pinTargetRow = null;
+const pinBack = document.getElementById("pinBack");
+const pinInput = document.getElementById("pinInput");
+const pinErr = document.getElementById("pinErr");
+
+function openPin(id) {
+  pinTargetRow = id;
+  pinErr.textContent = "";
+  pinInput.value = "";
+  pinBack.classList.add("open");
+  setTimeout(()=>pinInput.focus(), 30);
+}
+function closePin() { pinBack.classList.remove("open"); pinTargetRow = null; }
+
+document.getElementById("pinCancel").onclick = closePin;
+pinBack.addEventListener("click", (e)=>{ if (e.target === pinBack) closePin(); });
+document.getElementById("pinOk").onclick = submitPin;
+pinInput.addEventListener("keydown", (e)=>{ if (e.key === "Enter") submitPin(); if (e.key === "Escape") closePin(); });
+
+function submitPin() {
+  const pin = pinInput.value.trim();
+  const user = state.users.find(u => u.pin && u.pin === pin);
+  if (!user) { pinErr.textContent = "PIN not recognised."; pinInput.select(); return; }
+  const sheet = currentSheet();
+  const r = sheet.rows.find(x => x.id === pinTargetRow);
+  if (r) {
+    r.signedBy = user.initials || user.name.slice(0,2).toUpperCase();
+    r.signedAt = new Date().toISOString();
+    save(); recompute();
+  }
+  closePin();
+}
+
+/* ---------- Toolbar buttons ---------- */
+document.getElementById("btnAddRow").onclick = () => { currentSheet().rows.push(blankRow()); save(); appendRowDOM(); };
+document.getElementById("btnAdd10").onclick = () => { const s=currentSheet(); for(let i=0;i<10;i++) s.rows.push(blankRow()); save(); renderRows(); };
+document.getElementById("btnNewSheet").onclick = () => {
+  const d = prompt("New sheet — date of manufacture (YYYY-MM-DD):", todayISO());
+  if (!d) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { alert("Please use YYYY-MM-DD format."); return; }
+  switchSheet(d);
+};
+els.sheetPicker.onchange = (e) => switchSheet(e.target.value);
+els.sheetDate.onchange = (e) => { if (e.target.value) switchSheet(e.target.value); };
+els.cheeseType.onchange = (e) => { currentSheet().cheeseType = e.target.value; save(); renderSheetPicker(); };
+document.getElementById("btnPrint").onclick = () => window.print();
+document.getElementById("btnExport").onclick = exportCSV;
+
+/* ---------- CSV export ---------- */
+function exportCSV() {
+  const sheet = currentSheet();
+  const headers = ["Sheet date","Cheese type","Row","Pallet No","VAT A","VAT B","Blocks A","Blocks B","Total","Status","Reason","Keep Separate code","Code meaning","Initials","Signed at","Corrections"];
+  const lines = [headers];
+  sheet.rows.forEach((r,i) => {
+    if (!rowHasData(r)) return;
+    const st = rowStatus(r);
+    lines.push([
+      sheet.date, sheet.cheeseType || "", i+1, r.pallet, r.vatA, r.vatB, r.blocksA, r.blocksB,
+      (r.blocksA===""&&r.blocksB==="")?"":st.total,
+      st.kind==="idle"?"":st.msg, r.reason, r.code, codeMeaning(r.code),
+      r.signedBy, r.signedAt ? fmtTime(r.signedAt) : "", r.corrections
+    ]);
+  });
+  const csv = lines.map(row => row.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["﻿"+csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `wyke-pallets-${sheet.date}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Settings drawer ---------- */
+const drawer = document.getElementById("drawer");
+const drawerBack = document.getElementById("drawerBack");
+function openDrawer() { renderUsers(); renderCodes(); drawer.classList.add("open"); drawerBack.classList.add("open"); }
+function closeDrawer() { drawer.classList.remove("open"); drawerBack.classList.remove("open"); renderRows(); renderSheetPicker(); }
+document.getElementById("btnSettings").onclick = openDrawer;
+document.getElementById("drawerClose").onclick = closeDrawer;
+drawerBack.onclick = closeDrawer;
+
+function renderUsers() {
+  const body = document.getElementById("usersBody");
+  body.innerHTML = state.users.map((u,i)=>`<tr data-i="${i}">
+    <td><input data-uf="name" value="${escapeAttr(u.name)}" /></td>
+    <td><input data-uf="initials" value="${escapeAttr(u.initials)}" maxlength="4" /></td>
+    <td><input data-uf="pin" value="${escapeAttr(u.pin)}" inputmode="numeric" maxlength="8" /></td>
+    <td><button class="delbtn" data-udel="${i}" title="Remove">&times;</button></td>
+  </tr>`).join("");
+}
+document.getElementById("usersBody").addEventListener("input",(e)=>{
+  const tr=e.target.closest("tr"); const i=+tr.getAttribute("data-i");
+  const f=e.target.getAttribute("data-uf"); if(!f) return;
+  state.users[i][f]=e.target.value; save();
+});
+document.getElementById("usersBody").addEventListener("click",(e)=>{
+  if(e.target.hasAttribute("data-udel")){ state.users.splice(+e.target.getAttribute("data-udel"),1); save(); renderUsers(); }
+});
+document.getElementById("addUser").onclick=()=>{ state.users.push({name:"New person",initials:"",pin:""}); save(); renderUsers(); };
+
+function renderCodes() {
+  const body = document.getElementById("codesBody");
+  body.innerHTML = state.codes.map((c,i)=>`<tr data-i="${i}">
+    <td style="width:90px"><input data-cf="code" value="${escapeAttr(c.code)}" /></td>
+    <td><input data-cf="meaning" value="${escapeAttr(c.meaning)}" /></td>
+    <td><button class="delbtn" data-cdel="${i}" title="Remove">&times;</button></td>
+  </tr>`).join("");
+}
+document.getElementById("codesBody").addEventListener("input",(e)=>{
+  const tr=e.target.closest("tr"); const i=+tr.getAttribute("data-i");
+  const f=e.target.getAttribute("data-cf"); if(!f) return;
+  state.codes[i][f]=e.target.value; save();
+});
+document.getElementById("codesBody").addEventListener("click",(e)=>{
+  if(e.target.hasAttribute("data-cdel")){ state.codes.splice(+e.target.getAttribute("data-cdel"),1); save(); renderCodes(); }
+});
+document.getElementById("addCode").onclick=()=>{ state.codes.push({code:"",meaning:""}); save(); renderCodes(); };
+
+document.getElementById("clearSheet").onclick=()=>{
+  if(confirm("Clear all rows on the current sheet ("+state.currentDate+")? This cannot be undone.")){
+    state.sheets[state.currentDate]={date:state.currentDate,rows:[blankRow()]}; save(); renderRows(); renderSheetPicker();
+  }
+};
+
+/* ---------- Helpers ---------- */
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function escapeAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
+function csvCell(v){ const s=String(v==null?"":v); return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function fmtTime(iso){ if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return ""; return d.toLocaleString(undefined,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+
+/* ---------- Init ---------- */
+getSheet(state.currentDate);
+renderSheetPicker();
+renderRows();
+save();
+</script>
+</body>
+</html>
