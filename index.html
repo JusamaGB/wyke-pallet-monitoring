@@ -216,11 +216,21 @@
   #btnGuided:hover { filter: brightness(1.08); }
 
   @media (max-width: 640px) {
-    header.topbar h1 { font-size: 16px; }
+    header.topbar { gap: 8px; padding: 10px 12px; }
+    header.topbar h1 { font-size: 16px; flex: 1 1 100%; }
     header.topbar .tag { display: none; }
-    .stat { min-width: 60px; padding: 5px 8px; }
-    .stat .n { font-size: 15px; }
+    .spacer { display: none; }
+    .controls { width: 100%; gap: 6px; }
+    .controls .btn { flex: 1 1 30%; min-height: 44px; font-size: 14px; padding: 8px 6px; }
+    .sheetbar { padding: 10px 12px; gap: 10px; }
+    .sheetbar .field { flex: 1 1 100%; }
+    .sheetbar .field input, .sheetbar .field select { width: 100%; min-height: 42px; font-size: 16px; }
+    .cheese-wrap { width: 100%; }
+    .cheese-wrap select { flex: 1; }
+    .summary { width: 100%; margin-left: 0; }
+    #btnGuided { width: 100%; min-height: 54px; font-size: 18px; padding: 14px; }
     .wiz-input { font-size: 24px; }
+    .tablewrap { padding: 8px; }
   }
 
   @media print {
@@ -237,6 +247,8 @@
   <h1>Wyke <span class="tag">Pallet &amp; Cheese Monitoring</span></h1>
   <div class="spacer"></div>
   <div class="controls">
+    <button class="btn ghost" id="btnNewSheet">+ New sheet</button>
+    <button class="btn ghost" id="btnFinishDay">Finish day</button>
     <button class="btn ghost" id="btnPrint">Print</button>
     <button class="btn ghost" id="btnExport">Export CSV</button>
     <button class="btn ghost" id="btnSettings">Settings</button>
@@ -247,14 +259,6 @@
   <div class="field">
     <label>Date of manufacture (sheet)</label>
     <input type="date" id="sheetDate" />
-  </div>
-  <div class="field">
-    <label>Open saved sheet</label>
-    <select id="sheetPicker"></select>
-  </div>
-  <div class="field">
-    <label>&nbsp;</label>
-    <button class="btn" id="btnNewSheet">+ New sheet</button>
   </div>
   <div class="field">
     <label>Cheese type</label>
@@ -280,7 +284,6 @@
         <th rowspan="2">Pallet&nbsp;No.</th>
         <th colspan="2">VAT number</th>
         <th colspan="2">Blocks</th>
-        <th rowspan="2">Total<br/>/ 60</th>
         <th rowspan="2">Status</th>
         <th rowspan="2">Reason<br/>(if&nbsp;under&nbsp;60)</th>
         <th rowspan="2">Keep&nbsp;Separate</th>
@@ -517,7 +520,6 @@ function palletFlags(rows) {
 const els = {
   rows: document.getElementById("rows"),
   sheetDate: document.getElementById("sheetDate"),
-  sheetPicker: document.getElementById("sheetPicker"),
   cheeseType: document.getElementById("cheeseType"),
   cheeseLock: document.getElementById("cheeseLock"),
   cheeseHint: document.getElementById("cheeseHint"),
@@ -545,20 +547,10 @@ function codeMeaningInline(code) {
 
 // Read-only row — entry is via the guided wizard only; rows can't be edited inline.
 function rowHTML(r, idx, flag) {
-  const st = rowStatus(r);
-  const total = (r.blocksA === "" && r.blocksB === "") ? "" : st.total;
-  let rowCls = "";
-  if (st.kind === "ok") rowCls = "r-ok";
-  else if (st.kind === "warn") rowCls = "r-warn";
-  else if (st.kind === "err") rowCls = "r-err";
-  if (r.flagged) rowCls += " r-flagged";
-
-  let badgeCls, badgeTxt, badgeTitle = "";
-  if (r.flagged) { badgeCls = "err"; badgeTxt = "FLAGGED"; badgeTitle = r.flagReason || "Flagged for review"; }
-  else { badgeCls = (st.kind === "idle" ? "idle" : st.kind); badgeTxt = (st.kind === "idle" ? "—" : st.msg); }
-
+  const rowCls = r.flagged ? "r-flagged" : "";
   const palFlagged = flag && flag.flagged;
   const palTitle = palFlagged ? ("Expected " + flag.expected + " (must run consecutively)") : "";
+  const statusCell = r.flagged ? `<span class="badge err" title="${escapeAttr(r.flagReason || "Flagged for review")}">FLAGGED</span>` : "";
   const signDisp = r.signedBy ? `<span class="signed">${escapeHtml(r.signedBy)}<small>${escapeHtml(fmtTime(r.signedAt))}</small></span>` : "—";
 
   return `<tr data-id="${r.id}" class="${rowCls}">
@@ -568,8 +560,7 @@ function rowHTML(r, idx, flag) {
     <td class="rocell">${escapeHtml(r.vatB) || "—"}</td>
     <td class="rocell">${escapeHtml(r.blocksA) || "0"}</td>
     <td class="rocell">${escapeHtml(r.blocksB) || "0"}</td>
-    <td class="total">${total}</td>
-    <td><span class="badge ${badgeCls}" title="${escapeAttr(badgeTitle)}">${badgeTxt}</span></td>
+    <td>${statusCell}</td>
     <td class="reason ro">${escapeHtml(r.reason)}</td>
     <td class="ro codedisp">${codeMeaningInline(r.code)}</td>
     <td class="sign">${signDisp}</td>
@@ -582,7 +573,7 @@ function renderRows() {
   const sheet = currentSheet();
   const dataRows = sheet.rows.filter(rowHasData);
   if (!dataRows.length) {
-    els.rows.innerHTML = `<tr><td colspan="13" class="empty-note">No pallets logged yet — tap “+ Add pallet” to begin.</td></tr>`;
+    els.rows.innerHTML = `<tr><td colspan="12" class="empty-note">No pallets logged yet — tap “+ Add pallet” to begin.</td></tr>`;
   } else {
     const flags = palletFlags(dataRows);
     els.rows.innerHTML = dataRows.map((r,i) => rowHTML(r, i, flags[r.id])).join("");
@@ -597,13 +588,6 @@ function recompute() {
 
 /* ---------- Sheet picker ---------- */
 function renderSheetPicker() {
-  const sheets = state.sheets.slice().sort((a,b) => (a.date<b.date?1 : a.date>b.date?-1 : (b.createdAt||0)-(a.createdAt||0)));
-  els.sheetPicker.innerHTML = sheets.map(s => {
-    const n = s.rows.filter(rowHasData).length;
-    const label = `${s.date} · ${s.cheeseType||"—"} · ${n} pallet${n===1?"":"s"}${s.restartReason?" · restart":""}`;
-    const title = s.restartReason ? ` title="Restart: ${escapeAttr(s.restartReason)}"` : "";
-    return `<option value="${s.id}"${s.id===state.currentSheetId?" selected":""}${title}>${escapeHtml(label)}</option>`;
-  }).join("");
   els.sheetDate.value = currentSheet().date;
   renderCheeseField();
 }
@@ -690,7 +674,16 @@ document.getElementById("btnNewSheet").onclick = () => {
   state.currentSheetId = s.id;
   save(); renderSheetPicker(); renderRows();
 };
-els.sheetPicker.onchange = (e) => switchSheet(e.target.value);
+document.getElementById("btnFinishDay").onclick = () => {
+  const sheet = currentSheet();
+  const n = sheet.rows.filter(rowHasData).length;
+  if (!confirm("Finish this day's sheet (" + sheet.date + (sheet.cheeseType ? ", " + sheet.cheeseType : "") + ", " + n + " pallet" + (n===1?"":"s") + ") and start a fresh sheet?")) return;
+  sheet.finishedAt = Date.now();
+  const s = newSheet(todayISO());
+  state.sheets.push(s);
+  state.currentSheetId = s.id;
+  save(); renderSheetPicker(); renderRows();
+};
 els.sheetDate.onchange = (e) => { if (e.target.value) { currentSheet().date = e.target.value; save(); renderSheetPicker(); } };
 
 function renderCheeseField() {
@@ -867,8 +860,6 @@ function renderWizard() {
   } else if (wiz.step === 4) {
     const temp = { blocksA:d.blocksA, blocksB:d.blocksB, reason:d.reason };
     const st = rowStatus(temp);
-    const exp = expectedNextPallet();
-    const palletWarn = (d.pallet !== "" && exp !== null && parseInt(d.pallet,10) !== exp);
     let banner;
     if (st.kind === "err") banner = `<div class="wiz-banner err">Over 60 (${st.total}) — must be corrected before signing</div>`;
     else if (st.kind === "warn") banner = `<div class="wiz-banner warn">Under 60 (${st.total}) — enter a reason below</div>`;
@@ -876,8 +867,6 @@ function renderWizard() {
     else banner = `<div class="wiz-banner warn">No blocks entered yet</div>`;
     const reasonField = (st.kind === "warn")
       ? `<textarea class="wiz-reason" id="wizReason" rows="2" placeholder="Reason for being under 60 (required)">${escapeHtml(d.reason)}</textarea>` : "";
-    const palletNote = palletWarn
-      ? `<div class="wiz-hint warn">Pallet ${escapeHtml(d.pallet)} isn't consecutive (expected ${exp}). It'll be saved flagged for review.</div>` : "";
     body = `
       <div class="wiz-summary">
         <div class="row"><span>Pallet</span><span>${escapeHtml(d.pallet||"—")}</span></div>
@@ -886,7 +875,6 @@ function renderWizard() {
         <div class="row"><span>Keep Separate</span><span>${d.code ? escapeHtml(d.code)+" — "+escapeHtml(codeMeaning(d.code)) : "—"}</span></div>
       </div>
       ${banner}
-      ${palletNote}
       ${reasonField}
       <div class="wiz-vatwarn" id="wizVatWarn"></div>
       <label class="q" style="margin-top:6px;">Enter your PIN to sign</label>
@@ -996,6 +984,11 @@ function wizVatWarnings() {
       const t = cheeseTargetFor(vatSizeOf(String(n)));
       if (t && proj[String(n)] < t) warns.push("VAT " + n + " only " + proj[String(n)] + " / " + t + " — finish it before VAT " + current);
     }
+  }
+  // (3) Pallet not consecutive — wrong or skipped barcode
+  const expP = expectedNextPallet();
+  if (d.pallet !== "" && expP !== null && parseInt(d.pallet, 10) !== expP) {
+    warns.push("Pallet not consecutive (expected " + expP + ")");
   }
   return [...new Set(warns)];
 }
