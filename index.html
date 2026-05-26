@@ -196,6 +196,10 @@
   .wiz-err { color: var(--err); font-size: 13px; min-height: 16px; text-align: center; margin-top: 8px; }
   .wiz-foot { padding: 14px 18px; border-top: 1px solid var(--line); display: flex; gap: 10px; }
   .wiz-foot .btn { flex: 1; }
+  .wiz.warn { box-shadow: 0 0 0 4px var(--warn), 0 20px 60px rgba(0,0,0,.3); }
+  .wiz.warn .wiz-head { background: var(--warn-bg); }
+  .wiz-vatwarn { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-weight: 700; font-size: 13px; text-align: center; }
+  .wiz-vatwarn:empty { display: none; }
   .btn.big { padding: 14px 18px; font-size: 16px; }
   .btn[disabled] { opacity: .45; cursor: not-allowed; }
   #btnGuided { background: var(--brand); color: #fff; border-color: var(--brand); padding: 12px 20px; font-size: 16px; }
@@ -304,7 +308,7 @@
 
 <!-- Guided input wizard -->
 <div class="wiz-back" id="wizBack">
-  <div class="wiz">
+  <div class="wiz" id="wizCard">
     <div class="wiz-head">
       <h3>Add pallet</h3>
       <span class="wiz-step" id="wizStep">Step 1 of 5</span>
@@ -769,14 +773,18 @@ function cheeseTargetFor(size) {
   const v = parseInt(size === "large" ? c.blocksPerVatLarge : c.blocksPerVatSmall, 10);
   return (isNaN(v) || v <= 0) ? null : v;
 }
-function renderVatPanel() {
-  const sheet = currentSheet();
+function sheetVatTotals(sheet) {
   const totals = {};
   for (const r of sheet.rows) {
     const a = parseInt(r.blocksA,10), b = parseInt(r.blocksB,10);
     if (r.vatA !== "" && !isNaN(a) && a > 0) totals[r.vatA] = (totals[r.vatA]||0) + a;
     if (r.vatB !== "" && !isNaN(b) && b > 0) totals[r.vatB] = (totals[r.vatB]||0) + b;
   }
+  return totals;
+}
+function renderVatPanel() {
+  const sheet = currentSheet();
+  const totals = sheetVatTotals(sheet);
   const keys = Object.keys(totals).sort((x,y) => ((parseInt(x,10)||0) - (parseInt(y,10)||0)));
   if (!keys.length) { els.vatPanel.style.display = "none"; return; }
   els.vatPanel.style.display = "";
@@ -859,7 +867,8 @@ function renderWizard() {
         <div><small>Blocks A</small><input class="wiz-input" id="wizBlocksA" inputmode="numeric" value="${escapeAttr(d.blocksA)}" placeholder="0" /></div>
         <div><small>Blocks B</small><input class="wiz-input" id="wizBlocksB" inputmode="numeric" value="${escapeAttr(d.blocksB)}" placeholder="0" /></div>
       </div>
-      <div class="wiz-total" id="wizTotalBox"></div>`;
+      <div class="wiz-total" id="wizTotalBox"></div>
+      <div class="wiz-vatwarn" id="wizVatWarn"></div>`;
     foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
   } else if (wiz.step === 3) {
     let codes = `<button class="wiz-code ${d.code===""?"sel":""}" data-code=""><b>None</b><span>No keep-separate code</span></button>`;
@@ -892,10 +901,11 @@ function renderWizard() {
       ${banner}
       ${palletNote}
       ${reasonField}
+      <div class="wiz-vatwarn" id="wizVatWarn"></div>
       <label class="q" style="margin-top:6px;">Enter your PIN to sign</label>
       <input type="password" class="wiz-pin" id="wizPin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••" />
       <div class="wiz-err" id="wizErr"></div>`;
-    foot = backBtn + `<button class="btn primary big" id="wizSignBtn">Sign &amp; save</button>`;
+    foot = backBtn + `<button class="btn primary big" id="wizSignBtn">${wizVatWarnings().length ? "Confirm &amp; save" : "Sign &amp; save"}</button>`;
   }
 
   wizBodyEl.innerHTML = body;
@@ -903,6 +913,7 @@ function renderWizard() {
   attachWizHandlers();
   if (wiz.step === 2) updateWizTotal();
   if (wiz.step === 4) updateWizSignState();
+  applyWizWarn();
 }
 
 function attachWizHandlers() {
@@ -935,12 +946,40 @@ function updateWizTotal() {
   const t = wizTotal();
   box.className = "wiz-total " + (t > 60 ? "err" : (t < 60 ? "warn" : "ok"));
   box.innerHTML = t + "<small>of 60 blocks</small>";
+  applyWizWarn();
 }
 function updateWizSignState() {
   const d = wiz.data;
   const st = rowStatus({ blocksA:d.blocksA, blocksB:d.blocksB, reason:d.reason });
   const signBtn = document.getElementById("wizSignBtn"); if (!signBtn) return;
   signBtn.disabled = (st.kind === "err") || (st.kind === "idle") || (st.kind === "warn" && st.reasonRequired);
+}
+function wizVatWarnings() {
+  const d = wiz.data;
+  const existing = sheetVatTotals(currentSheet());
+  const warns = [];
+  const check = (vatNum, blocksStr) => {
+    const v = (vatNum || "").trim();
+    const add = parseInt(blocksStr, 10);
+    if (!v || isNaN(add) || add <= 0) return;
+    const target = cheeseTargetFor(vatSizeOf(v));
+    if (!target) return;
+    const projected = (existing[v] || 0) + add;
+    if (projected > target) warns.push("VAT " + v + " would reach " + projected + " / " + target);
+  };
+  check(d.vatA, d.blocksA);
+  check(d.vatB, d.blocksB);
+  return warns;
+}
+function applyWizWarn() {
+  const card = document.getElementById("wizCard");
+  if (!card || !wiz) return [];
+  const active = (wiz.step === 2 || wiz.step === 4);
+  const warns = active ? wizVatWarnings() : [];
+  card.classList.toggle("warn", warns.length > 0);
+  const el = document.getElementById("wizVatWarn");
+  if (el) el.innerHTML = warns.length ? ("Incorrect input — " + escapeHtml(warns.join("; ")) + ". Check this before saving.") : "";
+  return warns;
 }
 
 function wizNext() {
