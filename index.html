@@ -956,20 +956,35 @@ function updateWizSignState() {
 }
 function wizVatWarnings() {
   const d = wiz.data;
-  const existing = sheetVatTotals(currentSheet());
-  const warns = [];
-  const check = (vatNum, blocksStr) => {
+  // projected per-VAT totals = what's already on the sheet + this pallet's contribution
+  const proj = Object.assign({}, sheetVatTotals(currentSheet()));
+  const touched = [];
+  const reg = (vatNum, blocksStr) => {
     const v = (vatNum || "").trim();
     const add = parseInt(blocksStr, 10);
     if (!v || isNaN(add) || add <= 0) return;
-    const target = cheeseTargetFor(vatSizeOf(v));
-    if (!target) return;
-    const projected = (existing[v] || 0) + add;
-    if (projected > target) warns.push("VAT " + v + " would reach " + projected + " / " + target);
+    proj[v] = (proj[v] || 0) + add;
+    if (!touched.includes(v)) touched.push(v);
   };
-  check(d.vatA, d.blocksA);
-  check(d.vatB, d.blocksB);
-  return warns;
+  reg(d.vatA, d.blocksA);
+  reg(d.vatB, d.blocksB);
+  const warns = [];
+  // (1) Over target — for the VAT(s) this pallet adds to
+  for (const v of touched) {
+    const t = cheeseTargetFor(vatSizeOf(v));
+    if (t && proj[v] > t) warns.push("VAT " + v + " would reach " + proj[v] + " / " + t + " (over target)");
+  }
+  // (2) Out of sequence — an earlier VAT left unfinished once a later VAT has blocks on it
+  const nums = Object.keys(proj).filter(v => proj[v] > 0).map(v => parseInt(v, 10)).filter(n => !isNaN(n)).sort((a,b) => a - b);
+  if (nums.length >= 2) {
+    const current = nums[nums.length - 1];
+    for (let i = 0; i < nums.length - 1; i++) {
+      const n = nums[i];
+      const t = cheeseTargetFor(vatSizeOf(String(n)));
+      if (t && proj[String(n)] < t) warns.push("VAT " + n + " only " + proj[String(n)] + " / " + t + " — finish it before VAT " + current);
+    }
+  }
+  return [...new Set(warns)];
 }
 function applyWizWarn() {
   const card = document.getElementById("wizCard");
