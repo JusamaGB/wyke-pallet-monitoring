@@ -145,6 +145,10 @@
   .hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.4; }
   .closex { position: absolute; top: 14px; right: 16px; border: none; background: transparent; font-size: 22px; cursor: pointer; color: var(--muted); }
 
+  #rows td { padding: 8px 6px; }
+  #rows td.reason.ro, #rows td.corrections.ro, #rows td.codedisp { text-align: left; font-size: 13px; }
+  #rows td.rocell.flagged-cell { background: var(--warn-bg); box-shadow: inset 0 0 0 2px var(--warn); }
+
   .empty-note { padding: 40px; text-align: center; color: var(--muted); }
 
   /* Cheese lock + VAT reconciliation panel */
@@ -180,6 +184,7 @@
   .wiz-two small { display: block; text-align: center; font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
   .wiz-hint { font-size: 13px; color: var(--muted); margin-top: 14px; text-align: center; }
   .wiz-hint.warn { color: var(--warn); font-weight: 700; }
+  .wiz-hint.ok-hint { color: var(--ok); font-weight: 700; }
   .wiz-total { text-align: center; font-size: 42px; font-weight: 800; margin: 14px 0 4px; }
   .wiz-total small { display: block; font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
   .wiz-total.ok { color: var(--ok); } .wiz-total.warn { color: var(--warn); } .wiz-total.err { color: var(--err); }
@@ -532,98 +537,60 @@ function codeMeaning(code) {
   return c ? c.meaning : "";
 }
 
-function rowHTML(r, idx) {
-  return `<tr data-id="${r.id}">
+function codeMeaningInline(code) {
+  if (!code) return "";
+  const m = codeMeaning(code);
+  return escapeHtml(code) + (m ? (" — " + escapeHtml(m)) : "");
+}
+
+// Read-only row — entry is via the guided wizard only; rows can't be edited inline.
+function rowHTML(r, idx, flag) {
+  const st = rowStatus(r);
+  const total = (r.blocksA === "" && r.blocksB === "") ? "" : st.total;
+  let rowCls = "";
+  if (st.kind === "ok") rowCls = "r-ok";
+  else if (st.kind === "warn") rowCls = "r-warn";
+  else if (st.kind === "err") rowCls = "r-err";
+  if (r.flagged) rowCls += " r-flagged";
+
+  let badgeCls, badgeTxt, badgeTitle = "";
+  if (r.flagged) { badgeCls = "err"; badgeTxt = "FLAGGED"; badgeTitle = r.flagReason || "Flagged for review"; }
+  else { badgeCls = (st.kind === "idle" ? "idle" : st.kind); badgeTxt = (st.kind === "idle" ? "—" : st.msg); }
+
+  const palFlagged = flag && flag.flagged;
+  const palTitle = palFlagged ? ("Expected " + flag.expected + " (must run consecutively)") : "";
+  const signDisp = r.signedBy ? `<span class="signed">${escapeHtml(r.signedBy)}<small>${escapeHtml(fmtTime(r.signedAt))}</small></span>` : "—";
+
+  return `<tr data-id="${r.id}" class="${rowCls}">
     <td class="colnum">${idx+1}</td>
-    <td class="num"><input data-f="pallet" inputmode="numeric" value="${escapeAttr(r.pallet)}" placeholder="—" /></td>
-    <td class="num"><input data-f="vatA" value="${escapeAttr(r.vatA)}" placeholder="—" /></td>
-    <td class="num"><input data-f="vatB" value="${escapeAttr(r.vatB)}" placeholder="—" /></td>
-    <td class="num"><input data-f="blocksA" inputmode="numeric" value="${escapeAttr(r.blocksA)}" placeholder="0" /></td>
-    <td class="num"><input data-f="blocksB" inputmode="numeric" value="${escapeAttr(r.blocksB)}" placeholder="0" /></td>
-    <td class="total"><span class="tval"></span></td>
-    <td><span class="badge idle stbadge">—</span></td>
-    <td class="reason"><input data-f="reason" value="${escapeAttr(r.reason)}" placeholder="" /></td>
-    <td>
-      <div class="codecell">
-        <select data-f="code">${codeOptionsHTML(r.code)}</select>
-        <span class="meaning"></span>
-      </div>
-    </td>
-    <td class="sign"></td>
-    <td class="corrections"><input data-f="corrections" value="${escapeAttr(r.corrections)}" placeholder="" /></td>
+    <td class="rocell${palFlagged ? " flagged-cell" : ""}" title="${escapeAttr(palTitle)}">${escapeHtml(r.pallet) || "—"}</td>
+    <td class="rocell">${escapeHtml(r.vatA) || "—"}</td>
+    <td class="rocell">${escapeHtml(r.vatB) || "—"}</td>
+    <td class="rocell">${escapeHtml(r.blocksA) || "0"}</td>
+    <td class="rocell">${escapeHtml(r.blocksB) || "0"}</td>
+    <td class="total">${total}</td>
+    <td><span class="badge ${badgeCls}" title="${escapeAttr(badgeTitle)}">${badgeTxt}</span></td>
+    <td class="reason ro">${escapeHtml(r.reason)}</td>
+    <td class="ro codedisp">${codeMeaningInline(r.code)}</td>
+    <td class="sign">${signDisp}</td>
+    <td class="corrections ro">${escapeHtml(r.corrections)}</td>
     <td class="del"><button class="delbtn" title="Delete row">&times;</button></td>
   </tr>`;
 }
 
 function renderRows() {
   const sheet = currentSheet();
-  els.rows.innerHTML = sheet.rows.map((r,i)=>rowHTML(r,i)).join("");
+  const dataRows = sheet.rows.filter(rowHasData);
+  if (!dataRows.length) {
+    els.rows.innerHTML = `<tr><td colspan="13" class="empty-note">No pallets logged yet — tap “+ Add pallet” to begin.</td></tr>`;
+  } else {
+    const flags = palletFlags(dataRows);
+    els.rows.innerHTML = dataRows.map((r,i) => rowHTML(r, i, flags[r.id])).join("");
+  }
   recompute();
 }
 
-// Update computed display elements without touching inputs (keeps focus)
 function recompute() {
-  const sheet = currentSheet();
-  const flags = palletFlags(sheet.rows);
-
-  const trs = els.rows.querySelectorAll("tr");
-  trs.forEach(tr => {
-    const id = tr.getAttribute("data-id");
-    const r = sheet.rows.find(x => x.id === id);
-    if (!r) return;
-    const st = rowStatus(r);
-    const total = st.total;
-
-    // total cell
-    tr.querySelector(".tval").textContent = (r.blocksA==="" && r.blocksB==="") ? "" : total;
-    tr.classList.remove("r-ok","r-warn","r-err");
-    if (st.kind === "ok") tr.classList.add("r-ok");
-    else if (st.kind === "warn") tr.classList.add("r-warn");
-    else if (st.kind === "err") tr.classList.add("r-err");
-    tr.classList.toggle("r-flagged", !!r.flagged);
-
-    // status badge
-    const badge = tr.querySelector(".stbadge");
-    if (r.flagged) {
-      badge.className = "badge stbadge err";
-      badge.textContent = "FLAGGED";
-      badge.title = r.flagReason || "Flagged for review";
-    } else {
-      badge.className = "badge stbadge " + (st.kind==="idle"?"idle":st.kind);
-      badge.textContent = st.kind==="idle" ? "—" : st.msg;
-      badge.title = "";
-    }
-
-    // reason cell required highlight
-    const reasonTd = tr.querySelector("td.reason");
-    const reasonInput = reasonTd.querySelector("input");
-    if (st.reasonRequired) { reasonTd.classList.add("required"); reasonInput.placeholder = "Reason required"; }
-    else { reasonTd.classList.remove("required"); reasonInput.placeholder = ""; }
-
-    // pallet flag
-    const palletInput = tr.querySelector('input[data-f="pallet"]');
-    const pf = flags[id];
-    if (pf && pf.flagged) {
-      palletInput.classList.add("flagged");
-      palletInput.title = "Expected " + pf.expected + " (must run consecutively)";
-    } else {
-      palletInput.classList.remove("flagged");
-      palletInput.title = "";
-    }
-
-    // code meaning
-    tr.querySelector(".codecell .meaning").textContent = r.code ? codeMeaning(r.code) : "";
-
-    // sign cell
-    const signTd = tr.querySelector("td.sign");
-    if (r.signedBy) {
-      signTd.innerHTML = `<span class="signed">${escapeHtml(r.signedBy)}<small>${escapeHtml(fmtTime(r.signedAt))}</small></span>`;
-    } else {
-      signTd.innerHTML = `<button class="signbtn">Sign…</button>`;
-    }
-
-  });
-
   renderVatPanel();
   renderCheeseField();
 }
@@ -648,53 +615,13 @@ function switchSheet(id) {
   renderRows();
 }
 
-/* ---------- Events: grid ---------- */
-els.rows.addEventListener("input", (e) => {
-  const f = e.target.getAttribute("data-f");
-  if (!f) return;
-  const tr = e.target.closest("tr");
-  const id = tr.getAttribute("data-id");
-  const sheet = currentSheet();
-  const r = sheet.rows.find(x => x.id === id);
-  if (!r) return;
-  r[f] = e.target.value;
-
-  // auto-append a fresh row when the last row gains data
-  const isLast = sheet.rows[sheet.rows.length-1].id === id;
-  if (isLast && rowHasData(r)) { sheet.rows.push(blankRow()); appendRowDOM(); }
-
-  save();
-  recompute();
-});
-
-els.rows.addEventListener("change", (e) => {
-  if (e.target.getAttribute("data-f") === "code") {
-    // handled by input listener too, but ensure save
-    save(); recompute();
-  }
-});
-
+/* ---------- Events: grid (read-only — delete only) ---------- */
 els.rows.addEventListener("click", (e) => {
   if (e.target.classList.contains("delbtn")) {
     const tr = e.target.closest("tr");
     deleteRow(tr.getAttribute("data-id"));
-  } else if (e.target.classList.contains("signbtn")) {
-    const tr = e.target.closest("tr");
-    openPin(tr.getAttribute("data-id"));
-  } else if (e.target.closest(".signed")) {
-    // click an existing signature to re-sign / clear
-    const tr = e.target.closest("tr");
-    openPin(tr.getAttribute("data-id"));
   }
 });
-
-function appendRowDOM() {
-  const sheet = currentSheet();
-  const r = sheet.rows[sheet.rows.length-1];
-  const idx = sheet.rows.length-1;
-  els.rows.insertAdjacentHTML("beforeend", rowHTML(r, idx));
-  recompute();
-}
 
 function deleteRow(id) {
   const sheet = currentSheet();
@@ -855,17 +782,32 @@ function openWizard() {
 }
 function closeWizard() { wizBack.classList.remove("open"); wiz = null; }
 
-function expectedNextPallet() {
-  const sheet = currentSheet();
+function lastPalletNum() {
   let last = null;
-  for (const r of sheet.rows) { const n = parseInt(r.pallet,10); if (r.pallet !== "" && !isNaN(n)) last = n; }
-  return last === null ? null : last + 1;
+  for (const sh of state.sheets) {
+    for (const r of sh.rows) {
+      const n = parseInt(r.pallet, 10);
+      if (r.pallet !== "" && !isNaN(n) && (last === null || n > last)) last = n;
+    }
+  }
+  return last;
+}
+function expectedNextPallet() {
+  const l = lastPalletNum();
+  return l === null ? null : l + 1;
+}
+function palletTotalLen() { return (state.palletPrefix || "").length + (state.palletSuffixLen || 3); }
+function expectedFullStr() {
+  const expFull = expectedNextPallet();
+  return expFull === null ? null : String(expFull).padStart(palletTotalLen(), "0");
+}
+function palletPrefixNow() {
+  const full = expectedFullStr();
+  return full === null ? (state.palletPrefix || "") : full.slice(0, full.length - (state.palletSuffixLen || 3));
 }
 function expectedNextSuffix() {
-  const expFull = expectedNextPallet();
-  if (expFull === null) return "";
-  const len = (state.palletPrefix || "").length + (state.palletSuffixLen || 3);
-  return String(expFull).padStart(len, "0").slice(-(state.palletSuffixLen || 3));
+  const full = expectedFullStr();
+  return full === null ? "" : full.slice(-(state.palletSuffixLen || 3));
 }
 function wizTotal() {
   const a = parseInt(wiz.data.blocksA,10), b = parseInt(wiz.data.blocksB,10);
@@ -882,15 +824,15 @@ function renderWizard() {
   let body = "", foot = "";
 
   if (wiz.step === 0) {
-    const prefix = state.palletPrefix || "";
-    if (prefix) {
-      const exp = expectedNextSuffix();
-      body = `<label class="q">Pallet number — last ${state.palletSuffixLen} digits</label>
+    const usePrefix = !!(state.palletPrefix || "");
+    if (usePrefix) {
+      const prefix = palletPrefixNow();
+      body = `<label class="q">Confirm barcode — last ${state.palletSuffixLen} digits</label>
         <div class="pallet-row">
           <span class="pallet-prefix">${escapeHtml(prefix)}</span>
           <input class="wiz-input" id="wizPallet" inputmode="numeric" maxlength="${state.palletSuffixLen}" value="${escapeAttr(d.palletSuffix)}" placeholder="${"0".repeat(state.palletSuffixLen)}" />
         </div>
-        <div class="wiz-hint" id="wizPalletHint">${exp ? ("Expected: " + exp + "  (" + escapeHtml(prefix) + exp + ")") : "First pallet of the sheet"}</div>`;
+        <div class="wiz-hint" id="wizPalletHint"></div>`;
     } else {
       const exp = expectedNextPallet();
       body = `<label class="q">Pallet number</label>
@@ -975,7 +917,8 @@ function attachWizHandlers() {
   if (palletEl) palletEl.oninput = () => {
     if (state.palletPrefix) {
       d.palletSuffix = palletEl.value.replace(/\D/g, "");
-      d.pallet = d.palletSuffix ? (state.palletPrefix + d.palletSuffix.padStart(state.palletSuffixLen, "0")) : "";
+      d.pallet = d.palletSuffix ? (palletPrefixNow() + d.palletSuffix.padStart(state.palletSuffixLen, "0")) : "";
+      updatePalletHint();
     } else {
       d.pallet = palletEl.value;
     }
@@ -991,8 +934,24 @@ function attachWizHandlers() {
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); wiz.step === 4 ? wizSign() : wizNext(); } });
   });
 
+  if (wiz.step === 0) updatePalletHint();
   const focusId = {0:"wizPallet", 1:"wizVatA", 2:"wizBlocksA", 4:"wizPin"}[wiz.step];
   if (focusId) setTimeout(() => { const el = byId(focusId); if (el) el.focus(); }, 40);
+}
+function updatePalletHint() {
+  const hint = document.getElementById("wizPalletHint");
+  if (!hint || !state.palletPrefix) return;
+  const exp = expectedNextSuffix();
+  const suffix = wiz.data.palletSuffix || "";
+  if (!exp) { hint.className = "wiz-hint"; hint.textContent = "First pallet — type the barcode's last " + (state.palletSuffixLen||3) + " digits"; return; }
+  if (!suffix) { hint.className = "wiz-hint"; hint.textContent = "Expected next: " + palletPrefixNow() + exp; return; }
+  if (suffix.padStart(state.palletSuffixLen||3, "0") === exp) {
+    hint.className = "wiz-hint ok-hint";
+    hint.textContent = "✓ Matches the expected next barcode";
+  } else {
+    hint.className = "wiz-hint warn";
+    hint.textContent = "Doesn't match expected (" + exp + ") — check you're on the right barcode";
+  }
 }
 
 function updateWizTotal() {
@@ -1086,6 +1045,9 @@ function wizSign() {
   const last = sheet.rows[sheet.rows.length-1];
   if (last && !rowHasData(last)) sheet.rows.splice(sheet.rows.length-1, 0, row);
   else sheet.rows.push(row);
+  if (state.palletPrefix && row.pallet && row.pallet.length > (state.palletSuffixLen || 3)) {
+    state.palletPrefix = row.pallet.slice(0, row.pallet.length - (state.palletSuffixLen || 3));
+  }
   save(); renderRows(); renderSheetPicker();
   closeWizard();
 }
