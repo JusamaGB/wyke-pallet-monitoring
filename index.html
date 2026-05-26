@@ -198,7 +198,7 @@
   .wiz-banner { padding: 12px 14px; border-radius: 10px; margin: 14px 0; font-weight: 700; text-align: center; }
   .wiz-banner.ok { background: var(--ok-bg); color: var(--ok); } .wiz-banner.warn { background: var(--warn-bg); color: var(--warn); } .wiz-banner.err { background: var(--err-bg); color: var(--err); }
   .wiz-reason { width: 100%; font-size: 15px; padding: 12px; border: 2px solid var(--warn); border-radius: 10px; margin-bottom: 12px; font-family: inherit; }
-  .wiz-pin { width: 100%; font-size: 24px; text-align: center; letter-spacing: 8px; padding: 12px; border: 2px solid var(--line); border-radius: 10px; }
+  .wiz-pin { width: 100%; font-size: 24px; text-align: center; letter-spacing: 8px; padding: 12px; border: 2px solid var(--line); border-radius: 10px; -webkit-text-security: disc; text-security: disc; }
   .wiz-pin:focus { outline: none; border-color: var(--accent); }
   .wiz-err { color: var(--err); font-size: 13px; min-height: 16px; text-align: center; margin-top: 8px; }
   .wiz-foot { padding: 14px 18px; border-top: 1px solid var(--line); display: flex; gap: 10px; }
@@ -841,8 +841,8 @@ function renderWizard() {
   } else if (wiz.step === 1) {
     body = `<label class="q">Which VAT(s) did this pallet come from?</label>
       <div class="wiz-two">
-        <div><small>VAT A</small><input class="wiz-input" id="wizVatA" value="${escapeAttr(d.vatA)}" placeholder="—" /></div>
-        <div><small>VAT B</small><input class="wiz-input" id="wizVatB" value="${escapeAttr(d.vatB)}" placeholder="—" /></div>
+        <div><small>VAT A</small><input class="wiz-input" id="wizVatA" inputmode="numeric" value="${escapeAttr(d.vatA)}" placeholder="—" /></div>
+        <div><small>VAT B</small><input class="wiz-input" id="wizVatB" inputmode="numeric" value="${escapeAttr(d.vatB)}" placeholder="—" /></div>
       </div>
       <div class="wiz-hint">Fill one side, or both if the pallet was split between vats.</div>`;
     foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
@@ -883,7 +883,7 @@ function renderWizard() {
       ${reasonField}
       <div class="wiz-vatwarn" id="wizVatWarn"></div>
       <label class="q" style="margin-top:6px;">Enter your PIN to sign</label>
-      <input type="password" class="wiz-pin" id="wizPin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••" />
+      <input type="text" class="wiz-pin" id="wizPin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••" />
       <div class="wiz-err" id="wizErr"></div>`;
     const vatWarned = wizVatWarnings().length > 0;
     foot = backBtn + `<button class="btn big ${vatWarned ? "flag" : "primary"}" id="wizSignBtn">${vatWarned ? "Save as flagged error" : "Sign &amp; save"}</button>`;
