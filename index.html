@@ -147,6 +147,19 @@
 
   .empty-note { padding: 40px; text-align: center; color: var(--muted); }
 
+  /* Cheese lock + VAT reconciliation panel */
+  .cheese-wrap { display: flex; align-items: center; gap: 8px; }
+  .lock-badge { font-size: 11px; font-weight: 700; color: var(--muted); background: #eef1f4; border: 1px solid var(--line); border-radius: 12px; padding: 2px 8px; text-transform: uppercase; letter-spacing: .4px; }
+  select:disabled { background: #f0f2f4; color: var(--muted); cursor: not-allowed; }
+  .cheese-hint { font-size: 11px; color: var(--brand); font-weight: 600; }
+  .vatpanel { padding: 9px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .vp-head { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+  .vp-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .vp-chip { font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 14px; background: #eef1f4; color: var(--ink); border: 1px solid var(--line); }
+  .vp-chip.ok { background: var(--ok-bg); color: var(--ok); border-color: #bfe6cc; }
+  .vp-chip.warn { background: var(--warn-bg); color: var(--warn); border-color: #f0dca0; }
+  .vp-chip.err { background: var(--err-bg); color: var(--err); border-color: #e6b8b4; }
+
   /* Guided wizard (mobile-first) */
   .wiz-back { position: fixed; inset: 0; background: rgba(15,23,32,.5); display: none; align-items: center; justify-content: center; z-index: 60; padding: 14px; }
   .wiz-back.open { display: flex; }
@@ -185,8 +198,8 @@
   .wiz-foot .btn { flex: 1; }
   .btn.big { padding: 14px 18px; font-size: 16px; }
   .btn[disabled] { opacity: .45; cursor: not-allowed; }
-  #btnGuided { background: #fff; color: var(--brand); border-color: #fff; }
-  #btnGuided:hover { background: #eef5ff; }
+  #btnGuided { background: var(--brand); color: #fff; border-color: var(--brand); padding: 12px 20px; font-size: 16px; }
+  #btnGuided:hover { filter: brightness(1.08); }
 
   @media (max-width: 640px) {
     header.topbar h1 { font-size: 16px; }
@@ -210,7 +223,6 @@
   <h1>Wyke <span class="tag">Pallet &amp; Cheese Monitoring</span></h1>
   <div class="spacer"></div>
   <div class="controls">
-    <button class="btn big" id="btnGuided">+ Add pallet</button>
     <button class="btn ghost" id="btnPrint">Print</button>
     <button class="btn ghost" id="btnExport">Export CSV</button>
     <button class="btn ghost" id="btnSettings">Settings</button>
@@ -232,22 +244,19 @@
   </div>
   <div class="field">
     <label>Cheese type</label>
-    <select id="cheeseType">
-      <option value="">—</option>
-      <option>Mature</option>
-      <option>Extra Mature</option>
-      <option>Vintage</option>
-      <option>Red Mature</option>
-      <option>PWA (Organic)</option>
-    </select>
+    <div class="cheese-wrap">
+      <select id="cheeseType"></select>
+      <span class="lock-badge" id="cheeseLock" style="display:none;">Locked</span>
+    </div>
+    <span class="cheese-hint" id="cheeseHint"></span>
   </div>
 
   <div class="summary">
-    <div class="stat"><div class="n" id="statPallets">0</div><div class="l">Pallets</div></div>
-    <div class="stat"><div class="n" id="statBlocks">0</div><div class="l">Total blocks</div></div>
-    <div class="stat flag"><div class="n" id="statFlags">0</div><div class="l">Flagged</div></div>
+    <button class="btn primary big" id="btnGuided">+ Add pallet</button>
   </div>
 </div>
+
+<div class="vatpanel" id="vatPanel" style="display:none;"></div>
 
 <div class="tablewrap">
   <table class="grid" id="grid">
@@ -272,10 +281,8 @@
     </thead>
     <tbody id="rows"></tbody>
   </table>
-  <div style="margin-top:10px; display:flex; gap:8px;">
-    <button class="btn" id="btnAddRow">+ Add row</button>
-    <button class="btn small" id="btnAdd10">+ 10 rows</button>
-    <span class="hint" style="align-self:center;">Pallet target is 60 blocks. Pallet numbers must run consecutively (+1). Sign each row with your PIN.</span>
+  <div style="margin-top:10px;">
+    <span class="hint">Use <b>+ Add pallet</b> to log a pallet. Target is 60 blocks; pallet numbers must run consecutively (+1).</span>
   </div>
 </div>
 
@@ -325,6 +332,27 @@
   </section>
 
   <section>
+    <h3>Cheese types &amp; blocks per VAT</h3>
+    <table class="editlist" id="cheeseTable">
+      <thead><tr><th>Cheese</th><th style="width:78px">Large /VAT</th><th style="width:78px">Small /VAT</th><th></th></tr></thead>
+      <tbody id="cheeseBody"></tbody>
+    </table>
+    <button class="btn small" id="addCheese" style="margin-top:8px;">+ Add cheese</button>
+    <p class="hint">Expected blocks per VAT for each cheese, split by VAT size. Large vats and small vats yield different counts — e.g. Mature = 133 large / 106 small (each one over the grader block). Leave blank if not known yet.</p>
+  </section>
+
+  <section>
+    <h3>VAT sizes</h3>
+    <table class="editlist">
+      <tbody>
+        <tr><td style="width:90px">Large vats</td><td><input id="vatLarge" placeholder="e.g. 1,2,3,4" /></td></tr>
+        <tr><td>Small vats</td><td><input id="vatSmall" placeholder="e.g. 5,6" /></td></tr>
+      </tbody>
+    </table>
+    <p class="hint">Which VAT numbers are large vs small. The VAT totals use the matching large/small target per cheese.</p>
+  </section>
+
+  <section>
     <h3>Keep Separate codes</h3>
     <table class="editlist" id="codesTable">
       <thead><tr><th>Code</th><th>Meaning (one line)</th><th></th></tr></thead>
@@ -345,11 +373,12 @@
 "use strict";
 
 /* ---------- Storage ---------- */
-const LS_KEY = "wyke_pallet_monitor_v1";
+const LS_KEY = "wyke_pallet_monitor_v2";
 
 const todayISO = () => new Date().toISOString().slice(0,10);
 
 function seedState() {
+  const first = newSheet(todayISO());
   return {
     users: [
       { name: "J. Doe",   initials: "JD", pin: "0000" },
@@ -362,8 +391,16 @@ function seedState() {
       { code: "KS-03", meaning: "QA sample / awaiting result" },
       { code: "KS-04", meaning: "Rework / re-grade required" }
     ],
-    sheets: {},
-    currentDate: todayISO()
+    cheeses: [
+      { name: "Mature", blocksPerVatLarge: 133, blocksPerVatSmall: 106 },
+      { name: "Extra Mature", blocksPerVatLarge: null, blocksPerVatSmall: null },
+      { name: "Vintage", blocksPerVatLarge: null, blocksPerVatSmall: null },
+      { name: "Red Mature", blocksPerVatLarge: null, blocksPerVatSmall: null },
+      { name: "PWA (Organic)", blocksPerVatLarge: null, blocksPerVatSmall: null }
+    ],
+    vatSizes: { large: [1,2,3,4], small: [5,6] },
+    sheets: [ first ],
+    currentSheetId: first.id
   };
 }
 
@@ -374,8 +411,10 @@ function load() {
     const raw = localStorage.getItem(LS_KEY);
     if (!raw) return seedState();
     const s = JSON.parse(raw);
-    if (!s.users || !s.codes || !s.sheets) return seedState();
-    if (!s.currentDate) s.currentDate = todayISO();
+    if (!s.users || !s.codes || !Array.isArray(s.sheets) || !s.sheets.length) return seedState();
+    if (!s.cheeses) s.cheeses = seedState().cheeses;
+    if (!s.vatSizes) s.vatSizes = { large: [1,2,3,4], small: [5,6] };
+    if (!s.currentSheetId) s.currentSheetId = s.sheets[s.sheets.length-1].id;
     return s;
   } catch (e) { return seedState(); }
 }
@@ -384,20 +423,26 @@ function save() {
   catch (e) { console.warn("save failed", e); }
 }
 
+function uid() { return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function blankRow() {
   return { id: "r" + Math.random().toString(36).slice(2,9),
     pallet:"", vatA:"", vatB:"", blocksA:"", blocksB:"",
     code:"", reason:"", corrections:"", signedBy:"", signedAt:"" };
 }
-
-function getSheet(date) {
-  if (!state.sheets[date]) {
-    state.sheets[date] = { date, rows: [ blankRow() ], cheeseType: "" };
-  }
-  if (!state.sheets[date].rows.length) state.sheets[date].rows.push(blankRow());
-  return state.sheets[date];
+function newSheet(date) {
+  return { id: uid(), date, cheeseType: "", changeoverUsed: false, createdAt: Date.now(), restartReason: "", rows: [ blankRow() ] };
 }
-function currentSheet() { return getSheet(state.currentDate); }
+
+function currentSheet() {
+  let s = state.sheets.find(x => x.id === state.currentSheetId);
+  if (!s) {
+    s = state.sheets[0] || newSheet(todayISO());
+    if (!state.sheets.includes(s)) state.sheets.push(s);
+    state.currentSheetId = s.id;
+  }
+  if (!s.rows.length) s.rows.push(blankRow());
+  return s;
+}
 
 /* ---------- Validation ---------- */
 const PALLET_TARGET = 60;
@@ -445,9 +490,9 @@ const els = {
   sheetDate: document.getElementById("sheetDate"),
   sheetPicker: document.getElementById("sheetPicker"),
   cheeseType: document.getElementById("cheeseType"),
-  statPallets: document.getElementById("statPallets"),
-  statBlocks: document.getElementById("statBlocks"),
-  statFlags: document.getElementById("statFlags"),
+  cheeseLock: document.getElementById("cheeseLock"),
+  cheeseHint: document.getElementById("cheeseHint"),
+  vatPanel: document.getElementById("vatPanel"),
 };
 
 function codeOptionsHTML(selected) {
@@ -496,7 +541,6 @@ function renderRows() {
 function recompute() {
   const sheet = currentSheet();
   const flags = palletFlags(sheet.rows);
-  let pallets = 0, blocks = 0, flagged = 0;
 
   const trs = els.rows.querySelectorAll("tr");
   trs.forEach(tr => {
@@ -546,33 +590,27 @@ function recompute() {
       signTd.innerHTML = `<button class="signbtn">Sign…</button>`;
     }
 
-    // tallies
-    if (r.pallet !== "" && !isNaN(parseInt(r.pallet,10))) pallets++;
-    if (r.blocksA !== "" || r.blocksB !== "") blocks += total;
-    if (st.kind === "err" || st.reasonRequired || (pf && pf.flagged)) flagged++;
   });
 
-  els.statPallets.textContent = pallets;
-  els.statBlocks.textContent = blocks;
-  els.statFlags.textContent = flagged;
+  renderVatPanel();
+  renderCheeseField();
 }
 
 /* ---------- Sheet picker ---------- */
 function renderSheetPicker() {
-  const dates = Object.keys(state.sheets).sort().reverse();
-  if (!dates.includes(state.currentDate)) dates.unshift(state.currentDate);
-  els.sheetPicker.innerHTML = dates.map(d => {
-    const n = state.sheets[d] ? state.sheets[d].rows.filter(rowHasData).length : 0;
-    const sel = d === state.currentDate ? " selected" : "";
-    return `<option value="${d}"${sel}>${d} (${n})</option>`;
+  const sheets = state.sheets.slice().sort((a,b) => (a.date<b.date?1 : a.date>b.date?-1 : (b.createdAt||0)-(a.createdAt||0)));
+  els.sheetPicker.innerHTML = sheets.map(s => {
+    const n = s.rows.filter(rowHasData).length;
+    const label = `${s.date} · ${s.cheeseType||"—"} · ${n} pallet${n===1?"":"s"}${s.restartReason?" · restart":""}`;
+    const title = s.restartReason ? ` title="Restart: ${escapeAttr(s.restartReason)}"` : "";
+    return `<option value="${s.id}"${s.id===state.currentSheetId?" selected":""}${title}>${escapeHtml(label)}</option>`;
   }).join("");
-  els.sheetDate.value = state.currentDate;
-  els.cheeseType.value = currentSheet().cheeseType || "";
+  els.sheetDate.value = currentSheet().date;
+  renderCheeseField();
 }
 
-function switchSheet(date) {
-  state.currentDate = date;
-  getSheet(date);
+function switchSheet(id) {
+  state.currentSheetId = id;
   save();
   renderSheetPicker();
   renderRows();
@@ -672,17 +710,92 @@ function submitPin() {
 }
 
 /* ---------- Toolbar buttons ---------- */
-document.getElementById("btnAddRow").onclick = () => { currentSheet().rows.push(blankRow()); save(); appendRowDOM(); };
-document.getElementById("btnAdd10").onclick = () => { const s=currentSheet(); for(let i=0;i<10;i++) s.rows.push(blankRow()); save(); renderRows(); };
+const NEW_SHEET_SOON_MS = 2 * 60 * 60 * 1000; // 2 hours
 document.getElementById("btnNewSheet").onclick = () => {
   const d = prompt("New sheet — date of manufacture (YYYY-MM-DD):", todayISO());
   if (!d) return;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { alert("Please use YYYY-MM-DD format."); return; }
-  switchSheet(d);
+  let reason = "";
+  const recent = state.sheets
+    .filter(s => s.createdAt && s.rows.some(rowHasData))
+    .sort((a,b) => b.createdAt - a.createdAt)[0];
+  if (recent && (Date.now() - recent.createdAt) < NEW_SHEET_SOON_MS) {
+    reason = prompt("A sheet was started recently (" + recent.date + ", " + (recent.cheeseType || "no cheese") + "). Starting a new one this soon usually means a correction — please explain why (e.g. wrong cheese selected):", "");
+    if (reason === null) return;
+    reason = reason.trim();
+    if (!reason) { alert("An explanation is required to start a new sheet this soon."); return; }
+  }
+  const s = newSheet(d);
+  s.restartReason = reason;
+  state.sheets.push(s);
+  state.currentSheetId = s.id;
+  save(); renderSheetPicker(); renderRows();
 };
 els.sheetPicker.onchange = (e) => switchSheet(e.target.value);
-els.sheetDate.onchange = (e) => { if (e.target.value) switchSheet(e.target.value); };
-els.cheeseType.onchange = (e) => { currentSheet().cheeseType = e.target.value; save(); renderSheetPicker(); };
+els.sheetDate.onchange = (e) => { if (e.target.value) { currentSheet().date = e.target.value; save(); renderSheetPicker(); } };
+
+function renderCheeseField() {
+  const sheet = currentSheet();
+  els.cheeseType.innerHTML = '<option value="">—</option>' +
+    state.cheeses.map(c => `<option ${c.name===sheet.cheeseType?"selected":""}>${escapeHtml(c.name)}</option>`).join("");
+  const inProd = sheet.rows.some(rowHasData);
+  const organicChangeable = sheet.cheeseType === "PWA (Organic)" && !sheet.changeoverUsed;
+  const locked = sheet.cheeseType !== "" && inProd && !organicChangeable;
+  els.cheeseType.disabled = locked;
+  els.cheeseLock.style.display = locked ? "" : "none";
+  els.cheeseHint.textContent = locked
+    ? "Locked — start a new sheet to change cheese."
+    : (organicChangeable && inProd ? "Organic — switch when you change over." : "");
+}
+els.cheeseType.onchange = (e) => {
+  const sheet = currentSheet();
+  const prev = sheet.cheeseType;
+  sheet.cheeseType = e.target.value;
+  if (prev === "PWA (Organic)" && e.target.value !== "" && e.target.value !== "PWA (Organic)") sheet.changeoverUsed = true;
+  save(); renderSheetPicker(); recompute();
+};
+
+/* ---------- VAT reconciliation ---------- */
+function vatSizeOf(numStr) {
+  const n = parseInt(numStr, 10);
+  if (isNaN(n)) return null;
+  if ((state.vatSizes.large || []).includes(n)) return "large";
+  if ((state.vatSizes.small || []).includes(n)) return "small";
+  return null;
+}
+function cheeseTargetFor(size) {
+  const c = state.cheeses.find(x => x.name === currentSheet().cheeseType);
+  if (!c || !size) return null;
+  const v = parseInt(size === "large" ? c.blocksPerVatLarge : c.blocksPerVatSmall, 10);
+  return (isNaN(v) || v <= 0) ? null : v;
+}
+function renderVatPanel() {
+  const sheet = currentSheet();
+  const totals = {};
+  for (const r of sheet.rows) {
+    const a = parseInt(r.blocksA,10), b = parseInt(r.blocksB,10);
+    if (r.vatA !== "" && !isNaN(a) && a > 0) totals[r.vatA] = (totals[r.vatA]||0) + a;
+    if (r.vatB !== "" && !isNaN(b) && b > 0) totals[r.vatB] = (totals[r.vatB]||0) + b;
+  }
+  const keys = Object.keys(totals).sort((x,y) => ((parseInt(x,10)||0) - (parseInt(y,10)||0)));
+  if (!keys.length) { els.vatPanel.style.display = "none"; return; }
+  els.vatPanel.style.display = "";
+  let chips = "";
+  for (const k of keys) {
+    const n = totals[k];
+    const size = vatSizeOf(k);
+    const target = cheeseTargetFor(size);
+    const sizeLabel = size ? (" (" + size + ")") : "";
+    let cls = "vp-chip", note = n + " blocks";
+    if (target) {
+      if (n === target) { cls += " ok"; note = n + " / " + target + " complete"; }
+      else if (n > target) { cls += " err"; note = n + " / " + target + " · over " + (n-target); }
+      else { cls += " warn"; note = n + " / " + target + " · " + (target-n) + " to go"; }
+    }
+    chips += `<span class="${cls}">VAT ${escapeHtml(k)}${sizeLabel} · ${note}</span>`;
+  }
+  els.vatPanel.innerHTML = `<div class="vp-head">VAT totals</div><div class="vp-chips">${chips}</div>`;
+}
 document.getElementById("btnPrint").onclick = () => window.print();
 document.getElementById("btnExport").onclick = exportCSV;
 
@@ -892,7 +1005,7 @@ function exportCSV() {
 /* ---------- Settings drawer ---------- */
 const drawer = document.getElementById("drawer");
 const drawerBack = document.getElementById("drawerBack");
-function openDrawer() { renderUsers(); renderCodes(); drawer.classList.add("open"); drawerBack.classList.add("open"); }
+function openDrawer() { renderUsers(); renderCheeses(); renderVatSizes(); renderCodes(); drawer.classList.add("open"); drawerBack.classList.add("open"); }
 function closeDrawer() { drawer.classList.remove("open"); drawerBack.classList.remove("open"); renderRows(); renderSheetPicker(); }
 document.getElementById("btnSettings").onclick = openDrawer;
 document.getElementById("drawerClose").onclick = closeDrawer;
@@ -935,9 +1048,39 @@ document.getElementById("codesBody").addEventListener("click",(e)=>{
 });
 document.getElementById("addCode").onclick=()=>{ state.codes.push({code:"",meaning:""}); save(); renderCodes(); };
 
+function renderCheeses() {
+  const body = document.getElementById("cheeseBody");
+  body.innerHTML = state.cheeses.map((c,i)=>`<tr data-i="${i}">
+    <td><input data-hf="name" value="${escapeAttr(c.name)}" /></td>
+    <td><input data-hf="blocksPerVatLarge" inputmode="numeric" value="${c.blocksPerVatLarge==null?"":escapeAttr(c.blocksPerVatLarge)}" placeholder="—" /></td>
+    <td><input data-hf="blocksPerVatSmall" inputmode="numeric" value="${c.blocksPerVatSmall==null?"":escapeAttr(c.blocksPerVatSmall)}" placeholder="—" /></td>
+    <td><button class="delbtn" data-hdel="${i}" title="Remove">&times;</button></td>
+  </tr>`).join("");
+}
+document.getElementById("cheeseBody").addEventListener("input",(e)=>{
+  const tr=e.target.closest("tr"); const i=+tr.getAttribute("data-i");
+  const f=e.target.getAttribute("data-hf"); if(!f) return;
+  if (f==="blocksPerVatLarge" || f==="blocksPerVatSmall") { const v=parseInt(e.target.value,10); state.cheeses[i][f] = isNaN(v)?null:v; }
+  else state.cheeses[i][f]=e.target.value;
+  save();
+});
+document.getElementById("cheeseBody").addEventListener("click",(e)=>{
+  if(e.target.hasAttribute("data-hdel")){ state.cheeses.splice(+e.target.getAttribute("data-hdel"),1); save(); renderCheeses(); }
+});
+document.getElementById("addCheese").onclick=()=>{ state.cheeses.push({name:"New cheese",blocksPerVatLarge:null,blocksPerVatSmall:null}); save(); renderCheeses(); };
+
+function renderVatSizes() {
+  document.getElementById("vatLarge").value = (state.vatSizes.large||[]).join(",");
+  document.getElementById("vatSmall").value = (state.vatSizes.small||[]).join(",");
+}
+function parseVatNums(str){ return str.split(",").map(x=>parseInt(x.trim(),10)).filter(x=>!isNaN(x)); }
+document.getElementById("vatLarge").addEventListener("input",(e)=>{ state.vatSizes.large = parseVatNums(e.target.value); save(); });
+document.getElementById("vatSmall").addEventListener("input",(e)=>{ state.vatSizes.small = parseVatNums(e.target.value); save(); });
+
 document.getElementById("clearSheet").onclick=()=>{
-  if(confirm("Clear all rows on the current sheet ("+state.currentDate+")? This cannot be undone.")){
-    state.sheets[state.currentDate]={date:state.currentDate,rows:[blankRow()]}; save(); renderRows(); renderSheetPicker();
+  const sheet = currentSheet();
+  if(confirm("Clear all rows on the current sheet ("+sheet.date+")? This cannot be undone.")){
+    sheet.rows=[blankRow()]; save(); renderRows(); renderSheetPicker();
   }
 };
 
@@ -948,7 +1091,7 @@ function csvCell(v){ const s=String(v==null?"":v); return /[",\r\n]/.test(s) ? '
 function fmtTime(iso){ if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return ""; return d.toLocaleString(undefined,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); }
 
 /* ---------- Init ---------- */
-getSheet(state.currentDate);
+currentSheet();
 renderSheetPicker();
 renderRows();
 save();
