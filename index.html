@@ -777,9 +777,12 @@ function openWizard() {
 function closeWizard() { wizBack.classList.remove("open"); wiz = null; }
 
 function lastPalletNum() {
-  let last = null;
+  // When a Last pallet ID is configured it is the single source of truth
+  // (it auto-advances on save); leftover sheet data must not override it.
   const p = parseInt(state.palletPrefix, 10);
-  if (state.palletPrefix && !isNaN(p)) last = p;
+  if (state.palletPrefix && !isNaN(p)) return p;
+  // No configured ID (full-manual mode): fall back to the highest logged pallet.
+  let last = null;
   for (const sh of state.sheets) {
     for (const r of sh.rows) {
       const n = parseInt(r.pallet, 10);
