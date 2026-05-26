@@ -202,6 +202,9 @@
   .wiz-vatwarn:empty { display: none; }
   .btn.big { padding: 14px 18px; font-size: 16px; }
   .btn[disabled] { opacity: .45; cursor: not-allowed; }
+  .btn.flag { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .btn.flag:hover { filter: brightness(1.06); }
+  tr.r-flagged .colnum { box-shadow: inset 3px 0 0 var(--err); }
   #btnGuided { background: var(--brand); color: #fff; border-color: var(--brand); padding: 12px 20px; font-size: 16px; }
   #btnGuided:hover { filter: brightness(1.08); }
 
@@ -431,7 +434,7 @@ function uid() { return "s" + Date.now().toString(36) + Math.random().toString(3
 function blankRow() {
   return { id: "r" + Math.random().toString(36).slice(2,9),
     pallet:"", vatA:"", vatB:"", blocksA:"", blocksB:"",
-    code:"", reason:"", corrections:"", signedBy:"", signedAt:"" };
+    code:"", reason:"", corrections:"", signedBy:"", signedAt:"", flagged:false, flagReason:"" };
 }
 function newSheet(date) {
   return { id: uid(), date, cheeseType: "", changeoverUsed: false, createdAt: Date.now(), restartReason: "", rows: [ blankRow() ] };
@@ -560,11 +563,19 @@ function recompute() {
     if (st.kind === "ok") tr.classList.add("r-ok");
     else if (st.kind === "warn") tr.classList.add("r-warn");
     else if (st.kind === "err") tr.classList.add("r-err");
+    tr.classList.toggle("r-flagged", !!r.flagged);
 
     // status badge
     const badge = tr.querySelector(".stbadge");
-    badge.className = "badge stbadge " + (st.kind==="idle"?"idle":st.kind);
-    badge.textContent = st.kind==="idle" ? "—" : st.msg;
+    if (r.flagged) {
+      badge.className = "badge stbadge err";
+      badge.textContent = "FLAGGED";
+      badge.title = r.flagReason || "Flagged for review";
+    } else {
+      badge.className = "badge stbadge " + (st.kind==="idle"?"idle":st.kind);
+      badge.textContent = st.kind==="idle" ? "—" : st.msg;
+      badge.title = "";
+    }
 
     // reason cell required highlight
     const reasonTd = tr.querySelector("td.reason");
@@ -905,7 +916,8 @@ function renderWizard() {
       <label class="q" style="margin-top:6px;">Enter your PIN to sign</label>
       <input type="password" class="wiz-pin" id="wizPin" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="••••" />
       <div class="wiz-err" id="wizErr"></div>`;
-    foot = backBtn + `<button class="btn primary big" id="wizSignBtn">${wizVatWarnings().length ? "Confirm &amp; save" : "Sign &amp; save"}</button>`;
+    const vatWarned = wizVatWarnings().length > 0;
+    foot = backBtn + `<button class="btn big ${vatWarned ? "flag" : "primary"}" id="wizSignBtn">${vatWarned ? "Save as flagged error" : "Sign &amp; save"}</button>`;
   }
 
   wizBodyEl.innerHTML = body;
@@ -1020,9 +1032,12 @@ function wizSign() {
   const user = state.users.find(u => u.pin && u.pin === pin);
   if (!user) { errEl.textContent = "PIN not recognised."; return; }
 
+  const vatWarns = wizVatWarnings();
   const row = blankRow();
   row.pallet = d.pallet; row.vatA = d.vatA; row.vatB = d.vatB;
   row.blocksA = d.blocksA; row.blocksB = d.blocksB; row.code = d.code; row.reason = d.reason;
+  row.flagged = vatWarns.length > 0;
+  row.flagReason = vatWarns.join("; ");
   row.signedBy = user.initials || user.name.slice(0,2).toUpperCase();
   row.signedAt = new Date().toISOString();
   const sheet = currentSheet();
@@ -1044,7 +1059,7 @@ function exportCSV() {
     lines.push([
       sheet.date, sheet.cheeseType || "", i+1, r.pallet, r.vatA, r.vatB, r.blocksA, r.blocksB,
       (r.blocksA===""&&r.blocksB==="")?"":st.total,
-      st.kind==="idle"?"":st.msg, r.reason, r.code, codeMeaning(r.code),
+      r.flagged ? ("FLAGGED — " + r.flagReason) : (st.kind==="idle"?"":st.msg), r.reason, r.code, codeMeaning(r.code),
       r.signedBy, r.signedAt ? fmtTime(r.signedAt) : "", r.corrections
     ]);
   });
