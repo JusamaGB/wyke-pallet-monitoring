@@ -791,7 +791,7 @@ wizBack.addEventListener("click", (e) => { if (e.target === wizBack) closeWizard
 document.addEventListener("keydown", (e) => { if (wiz && e.key === "Escape") closeWizard(); });
 
 function openWizard() {
-  wiz = { step: 0, data: { pallet:"", palletSuffix:"", vatA:"", vatB:"", blocksA:"", blocksB:"", code:"", reason:"" } };
+  wiz = { step: 0, vatAck: false, data: { pallet:"", palletSuffix:"", vatA:"", vatB:"", blocksA:"", blocksB:"", code:"", reason:"" } };
   wizBack.classList.add("open");
   renderWizard();
 }
@@ -860,13 +860,16 @@ function renderWizard() {
     }
     foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
   } else if (wiz.step === 1) {
+    const vw = wizVatStepWarn();
+    const showWarn = vw && wiz.vatAck;
     body = `<label class="q">Which VAT(s) did this pallet come from?</label>
       <div class="wiz-two">
         <div><small>VAT A</small><input class="wiz-input" id="wizVatA" inputmode="numeric" value="${escapeAttr(d.vatA)}" placeholder="—" /></div>
         <div><small>VAT B</small><input class="wiz-input" id="wizVatB" inputmode="numeric" value="${escapeAttr(d.vatB)}" placeholder="—" /></div>
       </div>
-      <div class="wiz-hint">Fill one side, or both if the pallet was split between vats.</div>`;
-    foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
+      <div class="wiz-hint">Fill one side, or both if the pallet was split between vats.</div>
+      <div class="wiz-vatwarn" id="wizVatStepWarn">${showWarn ? escapeHtml(vw) : ""}</div>`;
+    foot = backBtn + `<button class="btn ${showWarn ? "flag" : "primary"} big" id="wizNextBtn">${showWarn ? "Continue anyway" : "Next"}</button>`;
   } else if (wiz.step === 2) {
     body = `<label class="q">Blocks from each VAT</label>
       <div class="wiz-two">
@@ -939,7 +942,7 @@ function attachWizHandlers() {
       d.pallet = palletEl.value;
     }
   };
-  bind("wizVatA","vatA"); bind("wizVatB","vatB");
+  bind("wizVatA","vatA", () => { wiz.vatAck = false; }); bind("wizVatB","vatB", () => { wiz.vatAck = false; });
   bind("wizBlocksA","blocksA", updateWizTotal); bind("wizBlocksB","blocksB", updateWizTotal);
   bind("wizReason","reason", updateWizSignState);
 
@@ -1019,6 +1022,25 @@ function wizVatWarnings() {
   }
   return [...new Set(warns)];
 }
+// VAT-step check (before blocks): warn if a new VAT is started before an earlier one is finished.
+function wizVatStepWarn() {
+  const d = wiz.data;
+  const totals = sheetVatTotals(currentSheet());
+  let current = null;
+  for (const eStr of Object.keys(totals)) {
+    const e = parseInt(eStr, 10); if (isNaN(e)) continue;
+    const t = cheeseTargetFor(vatSizeOf(eStr));
+    if (t && totals[eStr] < t && (current === null || e < current)) current = e;
+  }
+  if (current === null) return null;
+  const entered = [d.vatA, d.vatB].map(v => parseInt((v || "").trim(), 10)).filter(n => !isNaN(n));
+  if (!entered.length || entered.includes(current)) return null;
+  if (entered.some(n => n > current)) {
+    const t = cheeseTargetFor(vatSizeOf(String(current)));
+    return "VAT " + current + " is only " + totals[String(current)] + " / " + t + " — finish it before starting another VAT.";
+  }
+  return null;
+}
 // Hard error: a side has blocks without a VAT number, or a VAT number without blocks.
 function palletSideError(d) {
   const aVat = (d.vatA || "").trim() !== "";
@@ -1054,6 +1076,10 @@ function wizNext() {
       if (h) { h.textContent = "Enter a pallet number to continue"; h.classList.add("warn"); }
       return;
     }
+  }
+  if (wiz.step === 1) {
+    const vw = wizVatStepWarn();
+    if (vw && !wiz.vatAck) { wiz.vatAck = true; renderWizard(); return; }
   }
   if (wiz.step === 2 && palletSideError(d)) { applyWizWarn(); return; }
   if (wiz.step < WIZ_TOTAL - 1) { wiz.step++; renderWizard(); }
