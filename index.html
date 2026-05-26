@@ -165,7 +165,7 @@
   .vp-chip.err { background: var(--err-bg); color: var(--err); border-color: #e6b8b4; }
 
   /* Guided wizard (mobile-first) */
-  .wiz-back { position: fixed; inset: 0; background: rgba(15,23,32,.5); display: none; align-items: center; justify-content: center; z-index: 60; padding: 14px; }
+  .wiz-back { position: fixed; inset: 0; background: rgba(15,23,32,.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 60; padding: 14px; }
   .wiz-back.open { display: flex; }
   .wiz { background: #fff; border-radius: 16px; width: 440px; max-width: 100%; max-height: 94vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
   .wiz-head { padding: 15px 18px; display: flex; align-items: center; gap: 10px; }
@@ -285,9 +285,9 @@
         <th colspan="2">VAT number</th>
         <th colspan="2">Blocks</th>
         <th rowspan="2">Status</th>
-        <th rowspan="2">Reason<br/>(if&nbsp;under&nbsp;60)</th>
-        <th rowspan="2">Keep&nbsp;Separate</th>
         <th rowspan="2">Initials</th>
+        <th rowspan="2">Keep&nbsp;Separate</th>
+        <th rowspan="2">Reason<br/>(if&nbsp;under&nbsp;60)</th>
         <th rowspan="2">Corrections</th>
         <th rowspan="2"></th>
       </tr>
@@ -561,9 +561,9 @@ function rowHTML(r, idx, flag) {
     <td class="rocell">${escapeHtml(r.blocksA) || "0"}</td>
     <td class="rocell">${escapeHtml(r.blocksB) || "0"}</td>
     <td>${statusCell}</td>
-    <td class="reason ro">${escapeHtml(r.reason)}</td>
-    <td class="ro codedisp">${codeMeaningInline(r.code)}</td>
     <td class="sign">${signDisp}</td>
+    <td class="ro codedisp">${codeMeaningInline(r.code)}</td>
+    <td class="reason ro">${escapeHtml(r.reason)}</td>
     <td class="corrections ro">${escapeHtml(r.corrections)}</td>
     <td class="del"><button class="delbtn" title="Delete row">&times;</button></td>
   </tr>`;
@@ -819,10 +819,9 @@ function renderWizard() {
   if (wiz.step === 0) {
     const usePrefix = !!(state.palletPrefix || "");
     if (usePrefix) {
-      const prefix = palletPrefixNow();
       body = `<label class="q">Confirm barcode — last ${state.palletSuffixLen} digits</label>
         <div class="pallet-row">
-          <span class="pallet-prefix">${escapeHtml(prefix)}</span>
+          <span class="pallet-prefix">…</span>
           <input class="wiz-input" id="wizPallet" inputmode="numeric" maxlength="${state.palletSuffixLen}" value="${escapeAttr(d.palletSuffix)}" placeholder="${"0".repeat(state.palletSuffixLen)}" />
         </div>
         <div class="wiz-hint" id="wizPalletHint"></div>`;
@@ -931,14 +930,13 @@ function updatePalletHint() {
   if (!hint || !state.palletPrefix) return;
   const exp = expectedNextSuffix();
   const suffix = wiz.data.palletSuffix || "";
-  if (!exp) { hint.className = "wiz-hint"; hint.textContent = "First pallet — type the barcode's last " + (state.palletSuffixLen||3) + " digits"; return; }
-  if (!suffix) { hint.className = "wiz-hint"; hint.textContent = "Expected next: " + palletPrefixNow() + exp; return; }
+  if (!exp || !suffix) { hint.className = "wiz-hint"; hint.textContent = "Type the barcode's last " + (state.palletSuffixLen||3) + " digits"; return; }
   if (suffix.padStart(state.palletSuffixLen||3, "0") === exp) {
     hint.className = "wiz-hint ok-hint";
     hint.textContent = "✓ Matches the expected next barcode";
   } else {
     hint.className = "wiz-hint warn";
-    hint.textContent = "Doesn't match expected (" + exp + ") — check you're on the right barcode";
+    hint.textContent = "Doesn't match the next expected barcode — check the pallet";
   }
 }
 
