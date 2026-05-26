@@ -829,7 +829,7 @@ function renderWizard() {
       const exp = expectedNextPallet();
       body = `<label class="q">Pallet number</label>
         <input class="wiz-input" id="wizPallet" inputmode="numeric" value="${escapeAttr(d.pallet)}" placeholder="—" />
-        <div class="wiz-hint" id="wizPalletHint">${exp!==null ? ("Expected next: "+exp) : "First pallet of the sheet"}</div>`;
+        <div class="wiz-hint" id="wizPalletHint">${exp!==null ? "Enter the pallet number" : "First pallet of the sheet"}</div>`;
     }
     foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
   } else if (wiz.step === 1) {
@@ -933,10 +933,10 @@ function updatePalletHint() {
   if (!exp || !suffix) { hint.className = "wiz-hint"; hint.textContent = "Type the barcode's last " + (state.palletSuffixLen||3) + " digits"; return; }
   if (suffix.padStart(state.palletSuffixLen||3, "0") === exp) {
     hint.className = "wiz-hint ok-hint";
-    hint.textContent = "✓ Matches the expected next barcode";
+    hint.textContent = "✓ Barcode confirmed";
   } else {
     hint.className = "wiz-hint warn";
-    hint.textContent = "Doesn't match the next expected barcode — check the pallet";
+    hint.textContent = "Doesn't match — check you're on the right pallet";
   }
 }
 
