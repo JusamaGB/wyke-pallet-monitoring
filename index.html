@@ -19,7 +19,11 @@
     --warn-bg: #fff4dc;
     --err: #b3261e;
     --err-bg: #fdecea;
-    --accent: #2563eb;
+    --accent: #9a7b1e;       /* Wyke gold (deep — legible white text) */
+    --gold: #c9a227;         /* bright decorative gold */
+    --gold-soft: #faf3dd;    /* pale gold highlight tint */
+    --cream: #f7f1e1;        /* farm-shop cream panel */
+    --cream-line: #e6dcc2;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -84,7 +88,7 @@
     border: none; background: transparent; width: 100%; padding: 8px 6px; text-align: center;
     font-size: 14px; outline: none;
   }
-  table.grid td input:focus, table.grid td select:focus { background: #eef5ff; box-shadow: inset 0 0 0 2px var(--accent); }
+  table.grid td input:focus, table.grid td select:focus { background: var(--gold-soft); box-shadow: inset 0 0 0 2px var(--accent); }
   table.grid td.num input { text-align: center; }
   td.total { font-weight: 700; font-size: 15px; }
   tr.r-ok td.total { background: var(--ok-bg); color: var(--ok); }
@@ -107,7 +111,7 @@
 
   td.sign { min-width: 110px; }
   .signbtn { width: 100%; border: none; background: transparent; padding: 8px 6px; cursor: pointer; color: var(--accent); font-weight: 600; }
-  .signbtn:hover { background: #eef5ff; }
+  .signbtn:hover { background: var(--gold-soft); }
   .signed { font-weight: 700; font-size: 15px; color: var(--ink); }
   .signed small { display: block; font-weight: 400; font-size: 10px; color: var(--muted); }
 
@@ -190,7 +194,7 @@
   .wiz-total.ok { color: var(--ok); } .wiz-total.warn { color: var(--warn); } .wiz-total.err { color: var(--err); }
   .wiz-codes { display: flex; flex-direction: column; gap: 8px; }
   .wiz-code { text-align: left; padding: 12px 14px; border: 2px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; }
-  .wiz-code.sel { border-color: var(--accent); background: #eef5ff; }
+  .wiz-code.sel { border-color: var(--accent); background: var(--gold-soft); }
   .wiz-code b { display: block; font-size: 15px; } .wiz-code span { font-size: 12px; color: var(--muted); }
   .wiz-summary .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
   .wiz-summary .row span:first-child { color: var(--muted); }
@@ -243,20 +247,123 @@
     body { background: #fff; font-size: 11px; }
     table.grid thead th { position: static; }
   }
+
+  /* ===== Brand logo in top bars ===== */
+  .brand-logo { height: 30px; width: auto; display: block; flex: 0 0 auto; }
+
+  /* ===== Department gate ===== */
+  .deptgate { position: fixed; inset: 0; background: linear-gradient(160deg, #143d2b, #1d5b3f); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .deptgate.open { display: flex; }
+  .deptgate .card { background: #fff; border-radius: 18px; padding: 32px 26px; width: 480px; max-width: 100%; text-align: center; box-shadow: 0 24px 70px rgba(0,0,0,.45); }
+  .deptgate .gate-logo { height: 70px; margin-bottom: 10px; }
+  .deptgate h2 { margin: 4px 0 4px; font-size: 22px; }
+  .deptgate p { margin: 0 0 22px; color: var(--muted); font-size: 14px; }
+  .dept-options { display: flex; gap: 14px; flex-wrap: wrap; }
+  .dept-btn { flex: 1 1 40%; min-width: 150px; border: 2px solid var(--cream-line); background: var(--cream); border-radius: 14px; padding: 22px 16px; cursor: pointer; text-align: center; transition: transform .15s, border-color .15s; }
+  .dept-btn:hover { border-color: var(--gold); transform: translateY(-2px); }
+  .dept-btn .ic { font-size: 34px; display: block; margin-bottom: 8px; }
+  .dept-btn b { display: block; font-size: 17px; color: var(--ink); }
+  .dept-btn span { font-size: 12px; color: var(--muted); }
+
+  /* ===== Shop ===== */
+  #shopApp { padding-bottom: 80px; }
+  .shop-tabs { display: flex; gap: 6px; background: var(--panel); border-bottom: 1px solid var(--line); padding: 8px 16px 0; }
+  .shop-tab { border: none; background: transparent; padding: 9px 16px; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 700; color: var(--muted); font-size: 14px; }
+  .shop-tab.active { color: var(--brand); background: var(--gold-soft); box-shadow: inset 0 -3px 0 var(--gold); }
+  .shop-wrap { padding: 16px; max-width: 880px; margin: 0 auto; }
+  .shop-filters { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .chip-filter { border: 1px solid var(--line); background: #fff; border-radius: 20px; padding: 7px 14px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .chip-filter.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+  .entry-card { background: var(--panel); border: 1px solid var(--cream-line); border-left: 5px solid var(--gold); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .entry-card .ec-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .ec-type { display: inline-block; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; padding: 3px 9px; border-radius: 20px; }
+  .ec-type.director { background: var(--gold-soft); color: #7a5e0c; }
+  .ec-type.give { background: #e6f0ea; color: var(--brand); }
+  .ec-title { font-size: 17px; font-weight: 700; margin: 4px 0 2px; }
+  .ec-meta { font-size: 12px; color: var(--muted); }
+  .ec-total { font-size: 20px; font-weight: 800; white-space: nowrap; }
+  .ec-items { margin-top: 10px; font-size: 13px; }
+  .ec-items .li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--cream-line); }
+  .ec-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; flex-wrap: wrap; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; text-transform: uppercase; letter-spacing: .4px; }
+  .pill.out { background: var(--warn-bg); color: var(--warn); }
+  .pill.settled { background: var(--ok-bg); color: var(--ok); }
+
+  .acct-total-bar { display: flex; justify-content: space-between; align-items: center; background: var(--brand); color: #fff; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; }
+  .acct-total-bar .big { font-size: 24px; font-weight: 800; }
+  .acct-table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--cream-line); border-radius: 12px; overflow: hidden; }
+  .acct-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 10px 12px; background: var(--cream); }
+  .acct-table td { padding: 12px; border-top: 1px solid var(--cream-line); font-size: 14px; }
+  .acct-table td.amt { font-weight: 800; text-align: right; }
+
+  .shop-empty { text-align: center; color: var(--muted); padding: 50px 20px; }
+
+  /* Shop entry form (reuses .wiz overlay/card) */
+  .type-pick { display: flex; gap: 12px; }
+  .type-pick button { flex: 1; border: 2px solid var(--line); background: #fff; border-radius: 12px; padding: 16px 10px; cursor: pointer; font-weight: 700; font-size: 14px; }
+  .type-pick button.sel { border-color: var(--gold); background: var(--gold-soft); color: #7a5e0c; }
+  .type-pick button .ic { font-size: 24px; display: block; margin-bottom: 4px; }
+  .fld { margin: 14px 0; }
+  .fld > label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 6px; }
+  .fld input, .fld select, .fld textarea { width: 100%; border: 2px solid var(--line); border-radius: 10px; padding: 11px; font-size: 16px; font-family: inherit; background: #fff; }
+  .fld input:focus, .fld select:focus, .fld textarea:focus { outline: none; border-color: var(--gold); }
+  .items-head, .item-row { display: grid; grid-template-columns: 1fr 50px 78px 28px; gap: 6px; align-items: center; }
+  .items-head { font-size: 10px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); margin-bottom: 4px; padding: 0 2px; }
+  .item-row { margin-bottom: 6px; }
+  .item-row input { border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 8px; font-size: 15px; width: 100%; }
+  .item-row input:focus { outline: none; border-color: var(--gold); }
+  .item-row .rm { border: none; background: transparent; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0; }
+  .item-row .rm:hover { color: var(--err); }
+  .item-total-line { text-align: right; font-size: 28px; font-weight: 800; margin: 8px 0 2px; color: var(--brand); }
+  .note-on-acct { font-size: 12px; color: #7a5e0c; background: var(--gold-soft); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+
+  /* ===== Burger menu (top bars) ===== */
+  .menu-wrap { position: relative; }
+  .menu-toggle { font-size: 18px; line-height: 1; padding: 7px 13px; }
+  .menu-pop { position: absolute; top: calc(100% + 8px); right: 0; min-width: 190px; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,.24); padding: 6px; display: none; flex-direction: column; gap: 2px; z-index: 45; }
+  .menu-pop.open { display: flex; }
+  .menu-pop .btn { width: 100%; text-align: left; color: var(--ink); background: transparent; border-color: transparent; font-weight: 600; }
+  .menu-pop .btn:hover { background: var(--gold-soft); color: var(--ink); }
 </style>
 </head>
 <body>
 
+<!-- Department gate -->
+<div class="deptgate" id="deptGate">
+  <div class="card">
+    <img class="gate-logo" src="wyke-logo-green.svg" alt="Wyke Farms" />
+    <h2>Select department</h2>
+    <p>Choose where you're working. You can switch any time from the top bar.</p>
+    <div class="dept-options">
+      <button class="dept-btn" data-dept="packing">
+        <span class="ic">&#129472;</span><b>Packing</b><span>Pallet &amp; cheese monitoring</span>
+      </button>
+      <button class="dept-btn" data-dept="shop">
+        <span class="ic">&#128722;</span><b>Farm Shop</b><span>Director buys &amp; giveaways</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="packingApp">
 <header class="topbar">
-  <h1>Wyke <span class="tag">Pallet &amp; Cheese Monitoring</span></h1>
+  <img class="brand-logo" src="wyke-logo-white.svg" alt="Wyke Farms" />
+  <h1>Pallet &amp; Cheese Monitoring</h1>
   <div class="spacer"></div>
   <span class="topbar-date" id="topbarDate" style="display:none;"></span>
   <div class="controls">
-    <button class="btn ghost" id="btnNewSheet">+ New sheet</button>
     <button class="btn ghost" id="btnFinishDay">Finish day</button>
-    <button class="btn ghost" id="btnPrint">Print</button>
-    <button class="btn ghost" id="btnExport">Export CSV</button>
-    <button class="btn ghost" id="btnSettings">Settings</button>
+    <div class="menu-wrap">
+      <button class="btn ghost menu-toggle" id="pkMenuBtn" aria-label="Menu" title="Menu">&#9776;</button>
+      <div class="menu-pop" id="pkMenu">
+        <button class="btn ghost" id="btnNewSheet">+ New sheet</button>
+        <button class="btn ghost" id="btnPrint">Print</button>
+        <button class="btn ghost" id="btnExport">Export CSV</button>
+        <button class="btn ghost" id="btnSettings">Settings</button>
+        <button class="btn ghost" id="btnDeptSwitchPk">&#8646; Switch department</button>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -339,6 +446,54 @@
     <div class="wiz-foot" id="wizFoot"></div>
   </div>
 </div>
+</div><!-- /packingApp -->
+
+<!-- ===================== FARM SHOP ===================== -->
+<div id="shopApp" style="display:none;">
+<header class="topbar">
+  <img class="brand-logo" src="wyke-logo-white.svg" alt="Wyke Farms" />
+  <h1>Wyke Farm Shop <span class="tag">Records</span></h1>
+  <div class="spacer"></div>
+  <div class="controls">
+    <button class="btn ghost" id="shopNewBtn">+ New entry</button>
+    <div class="menu-wrap">
+      <button class="btn ghost menu-toggle" id="shopMenuBtn" aria-label="Menu" title="Menu">&#9776;</button>
+      <div class="menu-pop" id="shopMenu">
+        <button class="btn ghost" id="shopExportBtn">Export CSV</button>
+        <button class="btn ghost" id="shopSettingsBtn">Settings</button>
+        <button class="btn ghost" id="btnDeptSwitchShop">&#8646; Switch department</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="shop-tabs">
+  <button class="shop-tab active" id="tabLog">Log</button>
+  <button class="shop-tab" id="tabAccounts">Director accounts</button>
+</div>
+
+<div class="shop-wrap" id="shopLogView">
+  <div class="shop-filters">
+    <button class="chip-filter active" data-f="all">All</button>
+    <button class="chip-filter" data-f="director">Director Acc</button>
+    <button class="chip-filter" data-f="give">Raffles &amp; giveaways</button>
+  </div>
+  <div id="shopEntries"></div>
+</div>
+
+<div class="shop-wrap" id="shopAccountsView" style="display:none;">
+  <div id="shopAccounts"></div>
+</div>
+</div><!-- /shopApp -->
+
+<!-- Shop entry modal (reuses .wiz overlay) -->
+<div class="wiz-back" id="shopBack">
+  <div class="wiz" id="shopCard">
+    <div class="wiz-head"><h3 id="shopFormTitle">New shop entry</h3></div>
+    <div class="wiz-body" id="shopFormBody"></div>
+    <div class="wiz-foot" id="shopFormFoot"></div>
+  </div>
+</div>
 
 <!-- Settings drawer -->
 <div class="drawer-back" id="drawerBack"></div>
@@ -356,7 +511,23 @@
     <p class="hint">PINs are stored locally in this browser for the proof of concept only — this is not secure login. A real deployment would use proper authentication.</p>
   </section>
 
-  <section>
+  <section class="shop-only" style="display:none;">
+    <h3>Farm shop &mdash; directors</h3>
+    <table class="editlist" id="directorsTable">
+      <thead><tr><th>Director name</th><th></th></tr></thead>
+      <tbody id="directorsBody"></tbody>
+    </table>
+    <button class="btn small" id="addDirector" style="margin-top:8px;">+ Add director</button>
+    <p class="hint">Names offered when logging a director buy. These are placeholders &mdash; replace with the real directors. Kept in this browser only, like the PINs.</p>
+  </section>
+
+  <section class="shop-only" style="display:none;">
+    <h3>Farm shop &mdash; data</h3>
+    <button class="btn small danger" id="shopClear">Clear all shop entries</button>
+    <p class="hint">Shop records live in this browser only (localStorage) for the trial &mdash; each phone is separate. Export CSV to keep a copy. A shared database is the next step for multi-phone use.</p>
+  </section>
+
+  <section class="pk-only">
     <h3>Pallet number</h3>
     <table class="editlist">
       <tbody>
@@ -366,7 +537,7 @@
     <p class="hint">Enter the full ID of the last pallet logged — the starting point. It advances by one automatically every time a pallet is added, so it's always set for the next; operators just confirm the last 3 digits from the barcode. Leave blank to type the whole number each time.</p>
   </section>
 
-  <section>
+  <section class="pk-only">
     <h3>Cheese types &amp; blocks per VAT</h3>
     <table class="editlist" id="cheeseTable">
       <thead><tr><th>Cheese</th><th style="width:78px">Large /VAT</th><th style="width:78px">Small /VAT</th><th></th></tr></thead>
@@ -376,7 +547,7 @@
     <p class="hint">Expected blocks per VAT for each cheese, split by VAT size. Large vats and small vats yield different counts — e.g. Mature = 133 large / 106 small (each one over the grader block). Leave blank if not known yet.</p>
   </section>
 
-  <section>
+  <section class="pk-only">
     <h3>VAT sizes</h3>
     <table class="editlist">
       <tbody>
@@ -387,7 +558,7 @@
     <p class="hint">Which VAT numbers are large vs small. The VAT totals use the matching large/small target per cheese.</p>
   </section>
 
-  <section>
+  <section class="pk-only">
     <h3>Keep Separate codes</h3>
     <table class="editlist" id="codesTable">
       <thead><tr><th>Code</th><th>Meaning (one line)</th><th></th></tr></thead>
@@ -397,7 +568,7 @@
     <p class="hint">These are placeholder examples — replace with Wyke's real Keep Separate codes.</p>
   </section>
 
-  <section>
+  <section class="pk-only">
     <h3>Data</h3>
     <button class="btn small danger" id="clearSheet">Clear current sheet rows</button>
     <p class="hint">All data lives in this browser only (localStorage). Use Export CSV to keep a copy or move it elsewhere.</p>
@@ -439,7 +610,9 @@ function seedState() {
     vatSizes: { large: [1,2,3,4], small: [5,6] },
     palletPrefix: "00012345678",
     sheets: [ first ],
-    currentSheetId: first.id
+    currentSheetId: first.id,
+    dept: null,
+    shop: seedShop()
   };
 }
 
@@ -455,6 +628,11 @@ function load() {
     if (!s.vatSizes) s.vatSizes = { large: [1,2,3,4], small: [5,6] };
     if (s.palletPrefix === undefined) s.palletPrefix = "";
     if (!s.currentSheetId) s.currentSheetId = s.sheets[s.sheets.length-1].id;
+    if (s.dept === undefined) s.dept = null;
+    if (!s.shop || typeof s.shop !== "object") s.shop = seedShop();
+    if (!Array.isArray(s.shop.directors)) s.shop.directors = seedShop().directors;
+    if (!Array.isArray(s.shop.giveTypes)) s.shop.giveTypes = seedShop().giveTypes;
+    if (!Array.isArray(s.shop.entries)) s.shop.entries = [];
     return s;
   } catch (e) { return seedState(); }
 }
@@ -1143,8 +1321,17 @@ function exportCSV() {
 /* ---------- Settings drawer ---------- */
 const drawer = document.getElementById("drawer");
 const drawerBack = document.getElementById("drawerBack");
-function openDrawer() { renderUsers(); renderPalletSettings(); renderCheeses(); renderVatSizes(); renderCodes(); drawer.classList.add("open"); drawerBack.classList.add("open"); }
-function closeDrawer() { drawer.classList.remove("open"); drawerBack.classList.remove("open"); renderRows(); renderSheetPicker(); }
+function openDrawer() {
+  renderUsers(); renderPalletSettings(); renderCheeses(); renderVatSizes(); renderCodes(); renderDirectors();
+  const shopMode = state.dept === "shop";
+  document.querySelectorAll(".pk-only").forEach(s => s.style.display = shopMode ? "none" : "");
+  document.querySelectorAll(".shop-only").forEach(s => s.style.display = shopMode ? "" : "none");
+  drawer.classList.add("open"); drawerBack.classList.add("open");
+}
+function closeDrawer() {
+  drawer.classList.remove("open"); drawerBack.classList.remove("open");
+  if (state.dept === "shop") renderShop(); else { renderRows(); renderSheetPicker(); }
+}
 document.getElementById("btnSettings").onclick = openDrawer;
 document.getElementById("drawerClose").onclick = closeDrawer;
 document.getElementById("settingsDone").onclick = closeDrawer;
@@ -1234,11 +1421,301 @@ function escapeAttr(s){ return escapeHtml(s).replace(/'/g,"&#39;"); }
 function csvCell(v){ const s=String(v==null?"":v); return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
 function fmtTime(iso){ if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return ""; return d.toLocaleString(undefined,{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); }
 
+/* ===================== FARM SHOP MODULE ===================== */
+function seedShop() {
+  return {
+    directors: [ {name:"Director A"}, {name:"Director B"}, {name:"Director C"} ],
+    giveTypes: ["Raffle","Giveaway","Donation","Hamper","Sponsorship"],
+    entries: []
+  };
+}
+function shopUid() { return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function gbp(n) { return "£" + (Number(n)||0).toFixed(2); }
+function entryTotal(e) { return (e.items||[]).reduce((s,it) => s + (parseFloat(it.qty)||0) * (parseFloat(it.unitPrice)||0), 0); }
+function fmtDate(iso) { const d = new Date((iso||"")+"T00:00:00"); return isNaN(d.getTime()) ? (iso||"") : d.toLocaleDateString(undefined,{day:"2-digit",month:"short",year:"numeric"}); }
+
+let shopTab = "log";
+let shopFilter = "all";
+let shopForm = null;
+
+const shopAppEl = document.getElementById("shopApp");
+const packingAppEl = document.getElementById("packingApp");
+const deptGateEl = document.getElementById("deptGate");
+
+/* ---- Department switching ---- */
+function applyDept(d) {
+  state.dept = d; save();
+  deptGateEl.classList.remove("open");
+  if (d === "shop") { packingAppEl.style.display = "none"; shopAppEl.style.display = ""; renderShop(); }
+  else { shopAppEl.style.display = "none"; packingAppEl.style.display = ""; renderSheetPicker(); renderRows(); }
+}
+function openDeptGate() { deptGateEl.classList.add("open"); }
+deptGateEl.querySelectorAll(".dept-btn").forEach(b => b.onclick = () => applyDept(b.getAttribute("data-dept")));
+document.getElementById("btnDeptSwitchPk").onclick = openDeptGate;
+document.getElementById("btnDeptSwitchShop").onclick = openDeptGate;
+deptGateEl.addEventListener("click", (e) => { if (e.target === deptGateEl && state.dept) deptGateEl.classList.remove("open"); });
+
+/* ---- Burger menus ---- */
+function setupMenu(btnId, popId) {
+  const btn = document.getElementById(btnId);
+  const pop = document.getElementById(popId);
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const willOpen = !pop.classList.contains("open");
+    document.querySelectorAll(".menu-pop.open").forEach(m => m.classList.remove("open"));
+    if (willOpen) pop.classList.add("open");
+  };
+  pop.addEventListener("click", () => pop.classList.remove("open"));
+}
+setupMenu("pkMenuBtn", "pkMenu");
+setupMenu("shopMenuBtn", "shopMenu");
+document.addEventListener("click", () => document.querySelectorAll(".menu-pop.open").forEach(m => m.classList.remove("open")));
+
+/* ---- Tabs / filters ---- */
+document.getElementById("tabLog").onclick = () => { shopTab = "log"; renderShop(); };
+document.getElementById("tabAccounts").onclick = () => { shopTab = "accounts"; renderShop(); };
+document.querySelectorAll("#shopApp .chip-filter").forEach(c => c.onclick = () => { shopFilter = c.getAttribute("data-f"); renderShopEntries(); });
+
+function renderShop() {
+  document.getElementById("tabLog").classList.toggle("active", shopTab === "log");
+  document.getElementById("tabAccounts").classList.toggle("active", shopTab === "accounts");
+  document.getElementById("shopLogView").style.display = shopTab === "log" ? "" : "none";
+  document.getElementById("shopAccountsView").style.display = shopTab === "accounts" ? "" : "none";
+  if (shopTab === "log") renderShopEntries(); else renderShopAccounts();
+}
+
+function entryItemsHTML(e) {
+  if (!e.items || !e.items.length) return "";
+  const rows = e.items.map(it => {
+    const lt = (parseFloat(it.qty)||0) * (parseFloat(it.unitPrice)||0);
+    return `<div class="li"><span>${escapeHtml(it.name||"—")} &times;${escapeHtml(it.qty||"0")}</span><span>${gbp(lt)}</span></div>`;
+  }).join("");
+  return `<div class="ec-items">${rows}</div>`;
+}
+function renderShopEntries() {
+  document.querySelectorAll("#shopApp .chip-filter").forEach(c => c.classList.toggle("active", c.getAttribute("data-f") === shopFilter));
+  const box = document.getElementById("shopEntries");
+  let list = state.shop.entries.slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  if (shopFilter !== "all") list = list.filter(e => e.type === shopFilter);
+  if (!list.length) { box.innerHTML = `<div class="shop-empty">No entries yet — tap &ldquo;+ New entry&rdquo; to log a director buy or a giveaway.</div>`; return; }
+  box.innerHTML = list.map(e => {
+    const isDir = e.type === "director";
+    const typeLbl = isDir ? "Director Acc" : (e.giveType || "Giveaway");
+    const title = isDir ? escapeHtml(e.director || "—") : escapeHtml(e.event || "—");
+    const statusPill = isDir ? `<span class="pill ${e.settled?"settled":"out"}">${e.settled?"Invoiced":"Outstanding"}</span>` : "";
+    const settleBtn = isDir ? `<button class="btn small" data-settle="${e.id}">${e.settled?"Mark outstanding":"Mark invoiced"}</button>` : "";
+    return `<div class="entry-card">
+      <div class="ec-top">
+        <div>
+          <span class="ec-type ${isDir?"director":"give"}">${escapeHtml(typeLbl)}</span>
+          <div class="ec-title">${title}</div>
+          <div class="ec-meta">${escapeHtml(fmtDate(e.dateISO))}${e.notes?(" &middot; "+escapeHtml(e.notes)):""}</div>
+        </div>
+        <div class="ec-total">${gbp(entryTotal(e))}</div>
+      </div>
+      ${entryItemsHTML(e)}
+      <div class="ec-foot">
+        <span>${statusPill}</span>
+        <span style="display:flex;gap:8px;">${settleBtn}<button class="btn small danger" data-del="${e.id}">Delete</button></span>
+      </div>
+    </div>`;
+  }).join("");
+}
+document.getElementById("shopEntries").addEventListener("click", (e) => {
+  const s = e.target.getAttribute("data-settle");
+  const d = e.target.getAttribute("data-del");
+  if (s) { const en = state.shop.entries.find(x => x.id === s); if (en) { en.settled = !en.settled; en.settledAt = en.settled ? new Date().toISOString() : null; save(); renderShop(); } }
+  if (d) { if (confirm("Delete this entry?")) { state.shop.entries = state.shop.entries.filter(x => x.id !== d); save(); renderShop(); } }
+});
+
+function renderShopAccounts() {
+  const box = document.getElementById("shopAccounts");
+  const dirs = {};
+  for (const e of state.shop.entries) {
+    if (e.type !== "director") continue;
+    const k = e.director || "—";
+    if (!dirs[k]) dirs[k] = { count:0, outstanding:0, invoiced:0 };
+    const t = entryTotal(e);
+    dirs[k].count++;
+    if (e.settled) dirs[k].invoiced += t; else dirs[k].outstanding += t;
+  }
+  const names = Object.keys(dirs).sort();
+  if (!names.length) { box.innerHTML = `<div class="shop-empty">No director buys logged yet.</div>`; return; }
+  const totalOut = names.reduce((s,n) => s + dirs[n].outstanding, 0);
+  const rows = names.map(n => {
+    const d = dirs[n];
+    const action = d.outstanding > 0
+      ? `<button class="btn small" data-invoice="${escapeAttr(n)}">Mark all invoiced</button>`
+      : `<span class="pill settled">Clear</span>`;
+    return `<tr><td>${escapeHtml(n)}</td><td>${d.count}</td><td class="amt">${gbp(d.outstanding)}</td><td class="amt" style="color:var(--ok)">${gbp(d.invoiced)}</td><td>${action}</td></tr>`;
+  }).join("");
+  box.innerHTML = `<div class="acct-total-bar"><span>Total outstanding on account</span><span class="big">${gbp(totalOut)}</span></div>
+    <table class="acct-table"><thead><tr><th>Director</th><th>Buys</th><th>Outstanding</th><th>Invoiced</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="hint" style="margin-top:12px;">&ldquo;Mark all invoiced&rdquo; settles every outstanding buy for that director &mdash; use it when their account is billed.</p>`;
+}
+document.getElementById("shopAccounts").addEventListener("click", (e) => {
+  const n = e.target.getAttribute("data-invoice");
+  if (n) { if (confirm("Mark all outstanding buys for " + n + " as invoiced?")) {
+    const now = new Date().toISOString();
+    state.shop.entries.forEach(en => { if (en.type === "director" && (en.director||"—") === n && !en.settled) { en.settled = true; en.settledAt = now; } });
+    save(); renderShop();
+  }}
+});
+
+/* ---- Entry form ---- */
+document.getElementById("shopNewBtn").onclick = openShopForm;
+document.getElementById("shopSettingsBtn").onclick = openDrawer;
+const shopBack = document.getElementById("shopBack");
+shopBack.addEventListener("click", (e) => { if (e.target === shopBack) closeShopForm(); });
+document.addEventListener("keydown", (e) => { if (shopForm && e.key === "Escape") closeShopForm(); });
+
+function openShopForm() {
+  shopForm = {
+    type: "director",
+    director: (state.shop.directors[0]||{}).name || "",
+    giveType: state.shop.giveTypes[0] || "Raffle",
+    event: "", dateISO: todayISO(),
+    items: [ {name:"", qty:"1", unitPrice:""} ],
+    notes: ""
+  };
+  shopBack.classList.add("open");
+  renderShopForm();
+}
+function closeShopForm() { shopBack.classList.remove("open"); shopForm = null; }
+
+function renderShopForm() {
+  const f = shopForm;
+  const isDir = f.type === "director";
+  const dirOpts = state.shop.directors.map(d => `<option ${d.name===f.director?"selected":""}>${escapeHtml(d.name)}</option>`).join("");
+  const giveOpts = state.shop.giveTypes.map(g => `<option ${g===f.giveType?"selected":""}>${escapeHtml(g)}</option>`).join("");
+  const typeBlock = isDir
+    ? `<div class="fld"><label>Director</label><select id="sfDirector">${dirOpts}</select>
+        <div class="note-on-acct">Added to this director's running account total &mdash; invoiced later. Shown under &ldquo;Director accounts&rdquo;.</div></div>`
+    : `<div class="fld"><label>Type</label><select id="sfGiveType">${giveOpts}</select></div>
+       <div class="fld"><label>Event / recipient</label><input id="sfEvent" value="${escapeAttr(f.event)}" placeholder="e.g. Wells Carnival raffle" /></div>`;
+  const itemsRows = f.items.map((it,i) => `<div class="item-row" data-i="${i}">
+      <input data-if="name" value="${escapeAttr(it.name)}" placeholder="Item" />
+      <input data-if="qty" inputmode="numeric" value="${escapeAttr(it.qty)}" placeholder="Qty" />
+      <input data-if="unitPrice" inputmode="decimal" value="${escapeAttr(it.unitPrice)}" placeholder="£ each" />
+      <button class="rm" data-rm="${i}" title="Remove">&times;</button>
+    </div>`).join("");
+  document.getElementById("shopFormTitle").textContent = isDir ? "New Director Acc entry" : "New raffle / giveaway";
+  document.getElementById("shopFormBody").innerHTML = `
+    <div class="type-pick">
+      <button class="${isDir?"sel":""}" data-type="director"><span class="ic">&#129534;</span>Director Acc</button>
+      <button class="${!isDir?"sel":""}" data-type="give"><span class="ic">&#127873;</span>Raffle / giveaway</button>
+    </div>
+    ${typeBlock}
+    <div class="fld"><label>Date</label><input type="date" id="sfDate" value="${escapeAttr(f.dateISO)}" /></div>
+    <div class="fld">
+      <label>Items</label>
+      <div class="items-head"><span>Item</span><span>Qty</span><span>£ each</span><span></span></div>
+      <div id="sfItems">${itemsRows}</div>
+      <button class="btn small" id="sfAddItem" style="margin-top:6px;">+ Add item</button>
+    </div>
+    <div class="item-total-line">${gbp(entryTotal(f))}</div>
+    <div class="fld"><label>Notes (optional)</label><textarea id="sfNotes" rows="2" placeholder="Anything else worth recording">${escapeHtml(f.notes)}</textarea></div>
+    <div class="wiz-err" id="sfErr"></div>`;
+  document.getElementById("shopFormFoot").innerHTML = `<button class="btn big" id="sfCancel">Cancel</button><button class="btn primary big" id="sfSave">Save entry</button>`;
+  attachShopFormHandlers();
+}
+function syncItems() {
+  document.querySelectorAll("#sfItems .item-row").forEach(row => {
+    const i = +row.getAttribute("data-i");
+    row.querySelectorAll("input").forEach(inp => { if (shopForm.items[i]) shopForm.items[i][inp.getAttribute("data-if")] = inp.value; });
+  });
+}
+function updateShopTotal() {
+  syncItems();
+  const el = document.querySelector("#shopFormBody .item-total-line");
+  if (el) el.textContent = gbp(entryTotal(shopForm));
+}
+function attachShopFormHandlers() {
+  const f = shopForm; const byId = id => document.getElementById(id);
+  document.querySelectorAll("#shopFormBody .type-pick button").forEach(b => b.onclick = () => { syncItems(); f.type = b.getAttribute("data-type"); renderShopForm(); });
+  const dir = byId("sfDirector"); if (dir) dir.onchange = () => f.director = dir.value;
+  const gt = byId("sfGiveType"); if (gt) gt.onchange = () => f.giveType = gt.value;
+  const ev = byId("sfEvent"); if (ev) ev.oninput = () => f.event = ev.value;
+  const dt = byId("sfDate"); if (dt) dt.onchange = () => f.dateISO = dt.value;
+  const nt = byId("sfNotes"); if (nt) nt.oninput = () => f.notes = nt.value;
+  byId("sfAddItem").onclick = () => { syncItems(); f.items.push({name:"", qty:"1", unitPrice:""}); renderShopForm(); };
+  document.querySelectorAll("#sfItems .item-row").forEach(row => {
+    const i = +row.getAttribute("data-i");
+    row.querySelectorAll("input").forEach(inp => inp.oninput = () => { f.items[i][inp.getAttribute("data-if")] = inp.value; updateShopTotal(); });
+    row.querySelector(".rm").onclick = () => { syncItems(); f.items.splice(i,1); if (!f.items.length) f.items.push({name:"", qty:"1", unitPrice:""}); renderShopForm(); };
+  });
+  byId("sfCancel").onclick = closeShopForm;
+  byId("sfSave").onclick = saveShopEntry;
+}
+function saveShopEntry() {
+  const f = shopForm; const err = document.getElementById("sfErr");
+  syncItems();
+  const items = f.items.filter(it => (it.name||"").trim() !== "" || (parseFloat(it.unitPrice)||0) > 0);
+  if (!items.length) { err.textContent = "Add at least one item."; return; }
+  if (f.type === "give" && !(f.event||"").trim()) { err.textContent = "Enter the event or recipient."; return; }
+  const e = {
+    id: shopUid(), type: f.type, dateISO: f.dateISO, createdAt: Date.now(),
+    director: f.type === "director" ? f.director : "",
+    settled: false, settledAt: null,
+    giveType: f.type === "give" ? f.giveType : "",
+    event: f.type === "give" ? f.event.trim() : "",
+    items: items.map(it => ({ name:(it.name||"").trim(), qty:it.qty||"0", unitPrice:it.unitPrice||"0" })),
+    notes: (f.notes||"").trim(),
+    loggedAt: new Date().toISOString()
+  };
+  state.shop.entries.push(e);
+  save(); closeShopForm(); renderShop();
+}
+
+/* ---- Shop settings: directors ---- */
+function renderDirectors() {
+  const body = document.getElementById("directorsBody");
+  body.innerHTML = state.shop.directors.map((d,i) => `<tr data-i="${i}">
+    <td><input data-df="name" value="${escapeAttr(d.name)}" /></td>
+    <td><button class="delbtn" data-ddel="${i}" title="Remove">&times;</button></td></tr>`).join("");
+}
+document.getElementById("directorsBody").addEventListener("input", (e) => {
+  const tr = e.target.closest("tr"); const i = +tr.getAttribute("data-i");
+  if (e.target.getAttribute("data-df") === "name") { state.shop.directors[i].name = e.target.value; save(); }
+});
+document.getElementById("directorsBody").addEventListener("click", (e) => {
+  if (e.target.hasAttribute("data-ddel")) { state.shop.directors.splice(+e.target.getAttribute("data-ddel"),1); save(); renderDirectors(); }
+});
+document.getElementById("addDirector").onclick = () => { state.shop.directors.push({name:"New director"}); save(); renderDirectors(); };
+document.getElementById("shopClear").onclick = () => { if (confirm("Delete ALL shop entries? This cannot be undone.")) { state.shop.entries = []; save(); renderShop(); } };
+
+/* ---- Shop CSV ---- */
+document.getElementById("shopExportBtn").onclick = exportShopCSV;
+function exportShopCSV() {
+  const headers = ["Date","Type","Director","Event/Recipient","Give type","Item","Qty","Unit price","Line total","Entry total","Status","Notes","Logged at"];
+  const lines = [headers];
+  state.shop.entries.slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0)).forEach(e => {
+    const tot = entryTotal(e);
+    const status = e.type === "director" ? (e.settled ? "Invoiced" : "Outstanding") : "Given";
+    const its = (e.items && e.items.length) ? e.items : [{name:"",qty:"",unitPrice:""}];
+    its.forEach(it => {
+      const lt = (parseFloat(it.qty)||0) * (parseFloat(it.unitPrice)||0);
+      lines.push([ e.dateISO, e.type==="director"?"Director Acc":"Raffle/Giveaway", e.director||"", e.event||"", e.giveType||"",
+        it.name||"", it.qty||"", it.unitPrice||"", lt.toFixed(2), tot.toFixed(2), status, e.notes||"", e.loggedAt?fmtTime(e.loggedAt):"" ]);
+    });
+  });
+  const csv = lines.map(r => r.map(csvCell).join(",")).join("\r\n");
+  const blob = new Blob(["﻿"+csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `wyke-shop-${todayISO()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
 /* ---------- Init ---------- */
 currentSheet();
 renderSheetPicker();
 renderRows();
 save();
+
+// Department boot
+if (state.dept === "packing" || state.dept === "shop") applyDept(state.dept);
+else openDeptGate();
 </script>
 </body>
 </html>
