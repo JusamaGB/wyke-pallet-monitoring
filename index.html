@@ -335,6 +335,44 @@
   .catering-grand-total { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 14px; font-size: 18px; font-weight: 800; color: var(--brand); }
   .catering-grand-total .label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
 
+  /* ===== Inventory ===== */
+  .inv-subtabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .inv-subtab { border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 8px 18px; cursor: pointer; font-weight: 700; font-size: 13px; color: var(--muted); }
+  .inv-subtab.active { border-color: var(--brand); background: var(--ok-bg); color: var(--brand); }
+  .inv-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .inv-search { border: 2px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 14px; min-width: 160px; flex: 1; max-width: 280px; font-family: inherit; }
+  .inv-search:focus { outline: none; border-color: var(--gold); }
+  .inv-log-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .inv-prod-card { background: var(--panel); border: 1px solid var(--cream-line); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .inv-prod-info { flex: 1; min-width: 140px; }
+  .inv-prod-name { font-size: 16px; font-weight: 700; }
+  .inv-prod-cat { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 2px; }
+  .inv-prod-stock { text-align: center; min-width: 80px; }
+  .inv-prod-stock .n { font-size: 28px; font-weight: 800; line-height: 1; }
+  .inv-prod-stock .n.low { color: var(--err); }
+  .inv-prod-stock .n.med { color: var(--warn); }
+  .inv-prod-stock .n.ok { color: var(--ok); }
+  .inv-prod-stock .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+  .inv-prod-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .inv-prod-actions .btn { white-space: nowrap; }
+  .inv-empty { text-align: center; color: var(--muted); padding: 50px 20px; }
+
+  .inv-move-card { background: var(--panel); border: 1px solid var(--cream-line); border-left: 5px solid var(--ok); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .inv-move-card.out { border-left-color: var(--warn); }
+  .inv-move-card.vending { border-left-color: #6366f1; }
+  .inv-move-left { flex: 1; }
+  .inv-move-product { font-weight: 700; font-size: 15px; }
+  .inv-move-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .inv-move-qty { font-size: 20px; font-weight: 800; white-space: nowrap; }
+  .inv-move-qty.in { color: var(--ok); }
+  .inv-move-qty.out { color: var(--warn); }
+  .inv-move-qty.vending { color: #6366f1; }
+  .inv-move-type { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: .3px; }
+  .inv-move-type.in { background: var(--ok-bg); color: var(--ok); }
+  .inv-move-type.out { background: var(--warn-bg); color: var(--warn); }
+  .inv-move-type.vending { background: #eef2ff; color: #6366f1; }
+
   /* ===== Burger menu (top bars) ===== */
   .menu-wrap { position: relative; }
   .menu-toggle { font-size: 18px; line-height: 1; padding: 7px 13px; }
@@ -536,6 +574,7 @@
   <button class="shop-tab active" id="tabLog">Log</button>
   <button class="shop-tab" id="tabAccounts">Director accounts</button>
   <button class="shop-tab" id="tabCatering">Catering</button>
+  <button class="shop-tab" id="tabInventory">Inventory</button>
 </div>
 
 <div class="shop-wrap" id="shopLogView">
@@ -576,7 +615,47 @@
   </div>
   <div class="catering-grand-total" id="cateringGrandTotal"></div>
 </div>
+
+<div class="shop-wrap" id="shopInventoryView" style="display:none;">
+  <!-- Sub-tabs: Stock levels vs Movement log -->
+  <div class="inv-subtabs">
+    <button class="inv-subtab active" id="invSubStock">Stock levels</button>
+    <button class="inv-subtab" id="invSubLog">Movement log</button>
+  </div>
+
+  <!-- Stock levels view -->
+  <div id="invStockView">
+    <div class="inv-toolbar">
+      <button class="btn primary small" id="invAddProduct">+ Add product</button>
+      <button class="btn small" id="invFillVending">&#129302; Fill vending machine</button>
+      <input type="text" class="inv-search" id="invSearch" placeholder="Search products..." />
+    </div>
+    <div id="invProducts"></div>
+  </div>
+
+  <!-- Movement log view -->
+  <div id="invLogView" style="display:none;">
+    <div class="inv-toolbar">
+      <div class="inv-log-filters">
+        <button class="chip-filter active" data-mf="all">All</button>
+        <button class="chip-filter" data-mf="in">Stock in</button>
+        <button class="chip-filter" data-mf="out">Stock out</button>
+        <button class="chip-filter" data-mf="vending">Vending</button>
+      </div>
+    </div>
+    <div id="invMovements"></div>
+  </div>
+</div>
 </div><!-- /shopApp -->
+
+<!-- Inventory modals -->
+<div class="wiz-back" id="invModalBack">
+  <div class="wiz" id="invModalCard">
+    <div class="wiz-head"><h3 id="invModalTitle">Add product</h3></div>
+    <div class="wiz-body" id="invModalBody"></div>
+    <div class="wiz-foot" id="invModalFoot"></div>
+  </div>
+</div>
 
 <!-- Shop entry modal (reuses .wiz overlay) -->
 <div class="wiz-back" id="shopBack">
@@ -617,6 +696,7 @@
     <h3>Farm shop &mdash; data</h3>
     <button class="btn small danger" id="shopClear">Clear all shop entries</button>
     <button class="btn small danger" id="cateringClear" style="margin-left:8px;">Clear catering entries</button>
+    <button class="btn small danger" id="inventoryClear" style="margin-left:8px;">Clear inventory</button>
     <p class="hint">Shop records live in this browser only (localStorage) for the trial &mdash; each phone is separate. Export CSV to keep a copy. A shared database is the next step for multi-phone use.</p>
   </section>
 
@@ -1697,7 +1777,8 @@ function seedShop() {
     directors: [ {name:"Director A"}, {name:"Director B"}, {name:"Director C"} ],
     giveTypes: ["Raffle","Giveaway","Donation","Hamper","Sponsorship"],
     entries: [],
-    catering: []
+    catering: [],
+    inventory: { products: [], movements: [] }
   };
 }
 function shopUid() { return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
@@ -1746,18 +1827,22 @@ document.addEventListener("click", () => document.querySelectorAll(".menu-pop.op
 document.getElementById("tabLog").onclick = () => { shopTab = "log"; renderShop(); };
 document.getElementById("tabAccounts").onclick = () => { shopTab = "accounts"; renderShop(); };
 document.getElementById("tabCatering").onclick = () => { shopTab = "catering"; renderShop(); };
+document.getElementById("tabInventory").onclick = () => { shopTab = "inventory"; renderShop(); };
 document.querySelectorAll("#shopApp .chip-filter").forEach(c => c.onclick = () => { shopFilter = c.getAttribute("data-f"); renderShopEntries(); });
 
 function renderShop() {
   document.getElementById("tabLog").classList.toggle("active", shopTab === "log");
   document.getElementById("tabAccounts").classList.toggle("active", shopTab === "accounts");
   document.getElementById("tabCatering").classList.toggle("active", shopTab === "catering");
+  document.getElementById("tabInventory").classList.toggle("active", shopTab === "inventory");
   document.getElementById("shopLogView").style.display = shopTab === "log" ? "" : "none";
   document.getElementById("shopAccountsView").style.display = shopTab === "accounts" ? "" : "none";
   document.getElementById("shopCateringView").style.display = shopTab === "catering" ? "" : "none";
+  document.getElementById("shopInventoryView").style.display = shopTab === "inventory" ? "" : "none";
   if (shopTab === "log") renderShopEntries();
   else if (shopTab === "accounts") renderShopAccounts();
   else if (shopTab === "catering") renderCatering();
+  else if (shopTab === "inventory") renderInventory();
 }
 
 function entryItemsHTML(e) {
@@ -1960,6 +2045,7 @@ document.getElementById("directorsBody").addEventListener("click", (e) => {
 document.getElementById("addDirector").onclick = () => { state.shop.directors.push({name:"New director"}); save(); renderDirectors(); };
 document.getElementById("shopClear").onclick = () => { if (confirm("Delete ALL shop entries? This cannot be undone.")) { state.shop.entries = []; save(); renderShop(); } };
 document.getElementById("cateringClear").onclick = () => { if (confirm("Delete ALL catering entries? This cannot be undone.")) { state.shop.catering = []; save(); renderCatering(); } };
+document.getElementById("inventoryClear").onclick = () => { if (confirm("Delete ALL inventory products and movements? This cannot be undone.")) { state.shop.inventory = { products: [], movements: [] }; save(); renderInventory(); } };
 
 /* ---- Catering module ---- */
 function cateringUid() { return "ct" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
@@ -2026,6 +2112,268 @@ document.getElementById("cateringBody").addEventListener("click", (e) => {
   }
 });
 
+/* ===================== INVENTORY MODULE ===================== */
+if (!state.shop.inventory) state.shop.inventory = { products: [], movements: [] };
+const inv = () => state.shop.inventory;
+function invUid() { return "iv" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+let invSubTab = "stock";
+let invMoveFilter = "all";
+let invSearchTerm = "";
+
+/* ---- Sub-tab switching ---- */
+document.getElementById("invSubStock").onclick = () => { invSubTab = "stock"; renderInventory(); };
+document.getElementById("invSubLog").onclick = () => { invSubTab = "log"; renderInventory(); };
+
+function renderInventory() {
+  document.getElementById("invSubStock").classList.toggle("active", invSubTab === "stock");
+  document.getElementById("invSubLog").classList.toggle("active", invSubTab === "log");
+  document.getElementById("invStockView").style.display = invSubTab === "stock" ? "" : "none";
+  document.getElementById("invLogView").style.display = invSubTab === "log" ? "" : "none";
+  if (invSubTab === "stock") renderInvProducts();
+  else renderInvMovements();
+}
+
+/* ---- Stock level for a product ---- */
+function prodStock(pid) {
+  return inv().movements.filter(m => m.productId === pid).reduce((s, m) => {
+    if (m.type === "in") return s + (parseFloat(m.qty)||0);
+    return s - (parseFloat(m.qty)||0);
+  }, 0);
+}
+
+/* ---- Product list ---- */
+function renderInvProducts() {
+  const box = document.getElementById("invProducts");
+  let prods = inv().products.slice();
+  if (invSearchTerm) {
+    const q = invSearchTerm.toLowerCase();
+    prods = prods.filter(p => p.name.toLowerCase().includes(q) || (p.category||"").toLowerCase().includes(q));
+  }
+  prods.sort((a,b) => a.name.localeCompare(b.name));
+  if (!prods.length) {
+    box.innerHTML = `<div class="inv-empty">${inv().products.length ? "No products match your search." : "No products yet &mdash; tap &ldquo;+ Add product&rdquo; to get started."}</div>`;
+    return;
+  }
+  box.innerHTML = prods.map(p => {
+    const stock = prodStock(p.id);
+    const lvl = stock <= (p.lowThreshold||0) ? "low" : stock <= (p.lowThreshold||0)*2 ? "med" : "ok";
+    return `<div class="inv-prod-card" data-pid="${p.id}">
+      <div class="inv-prod-info">
+        <div class="inv-prod-name">${escapeHtml(p.name)}</div>
+        ${p.category ? `<div class="inv-prod-cat">${escapeHtml(p.category)}</div>` : ""}
+      </div>
+      <div class="inv-prod-stock">
+        <div class="n ${lvl}">${stock}</div>
+        <div class="l">in stock</div>
+      </div>
+      <div class="inv-prod-actions">
+        <button class="btn small" data-inv-in="${p.id}">+ Stock in</button>
+        <button class="btn small" data-inv-out="${p.id}">&#8722; Stock out</button>
+        <button class="btn small" data-inv-edit="${p.id}">Edit</button>
+        <button class="btn small danger" data-inv-del="${p.id}">&times;</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+document.getElementById("invSearch").oninput = (e) => { invSearchTerm = e.target.value; renderInvProducts(); };
+
+document.getElementById("invProducts").addEventListener("click", (e) => {
+  const inId = e.target.getAttribute("data-inv-in");
+  const outId = e.target.getAttribute("data-inv-out");
+  const editId = e.target.getAttribute("data-inv-edit");
+  const delId = e.target.getAttribute("data-inv-del");
+  if (inId) openInvMoveForm(inId, "in");
+  if (outId) openInvMoveForm(outId, "out");
+  if (editId) openInvProductForm(editId);
+  if (delId) {
+    const p = inv().products.find(x => x.id === delId);
+    if (p && confirm(`Delete "${p.name}" and all its movements?`)) {
+      inv().products = inv().products.filter(x => x.id !== delId);
+      inv().movements = inv().movements.filter(x => x.productId !== delId);
+      save(); renderInventory();
+    }
+  }
+});
+
+/* ---- Movement log ---- */
+document.querySelectorAll("#invLogView .chip-filter").forEach(c => c.onclick = () => {
+  invMoveFilter = c.getAttribute("data-mf");
+  renderInvMovements();
+});
+
+function renderInvMovements() {
+  document.querySelectorAll("#invLogView .chip-filter").forEach(c => c.classList.toggle("active", c.getAttribute("data-mf") === invMoveFilter));
+  const box = document.getElementById("invMovements");
+  let moves = inv().movements.slice().sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  if (invMoveFilter !== "all") {
+    if (invMoveFilter === "vending") moves = moves.filter(m => m.destination === "vending");
+    else if (invMoveFilter === "in") moves = moves.filter(m => m.type === "in");
+    else if (invMoveFilter === "out") moves = moves.filter(m => m.type === "out");
+  }
+  if (!moves.length) { box.innerHTML = `<div class="inv-empty">No movements recorded yet.</div>`; return; }
+  box.innerHTML = moves.map(m => {
+    const p = inv().products.find(x => x.id === m.productId);
+    const pName = p ? p.name : "(deleted)";
+    const isVending = m.destination === "vending";
+    const typeClass = isVending ? "vending" : m.type;
+    const typeLabel = isVending ? "Vending" : (m.type === "in" ? "Stock in" : "Stock out");
+    const sign = m.type === "in" ? "+" : "−";
+    const dest = m.destination && m.destination !== "vending" ? ` → ${escapeHtml(m.destination)}` : "";
+    return `<div class="inv-move-card ${typeClass}">
+      <div class="inv-move-left">
+        <span class="inv-move-type ${typeClass}">${typeLabel}</span>
+        <div class="inv-move-product">${escapeHtml(pName)}${dest}</div>
+        <div class="inv-move-meta">${escapeHtml(fmtDate(m.dateISO))}${m.note ? " &middot; " + escapeHtml(m.note) : ""}${m.who ? " &middot; " + escapeHtml(m.who) : ""}</div>
+      </div>
+      <div class="inv-move-qty ${typeClass}">${sign}${m.qty}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ---- Add product form ---- */
+document.getElementById("invAddProduct").onclick = () => openInvProductForm(null);
+
+const invBack = document.getElementById("invModalBack");
+invBack.addEventListener("click", (e) => { if (e.target === invBack) closeInvModal(); });
+
+function closeInvModal() { invBack.classList.remove("open"); }
+
+function openInvProductForm(editId) {
+  const existing = editId ? inv().products.find(p => p.id === editId) : null;
+  const title = existing ? "Edit product" : "Add product";
+  document.getElementById("invModalTitle").textContent = title;
+  document.getElementById("invModalBody").innerHTML = `
+    <div class="fld"><label>Product name</label><input id="ipName" value="${escapeAttr(existing ? existing.name : "")}" placeholder="e.g. Cheddar 200g" /></div>
+    <div class="fld"><label>Category (optional)</label><input id="ipCat" value="${escapeAttr(existing ? existing.category||"" : "")}" placeholder="e.g. Cheese, Drinks, Snacks" /></div>
+    <div class="fld"><label>Low stock warning at</label><input id="ipLow" inputmode="numeric" value="${existing ? (existing.lowThreshold||5) : "5"}" placeholder="5" /></div>
+    ${!existing ? '<div class="fld"><label>Opening stock (optional)</label><input id="ipOpening" inputmode="numeric" value="" placeholder="0" /></div>' : ""}
+    <div class="wiz-err" id="ipErr"></div>`;
+  document.getElementById("invModalFoot").innerHTML = `<button class="btn big" id="ipCancel">Cancel</button><button class="btn primary big" id="ipSave">${existing?"Save":"Add product"}</button>`;
+  invBack.classList.add("open");
+  document.getElementById("ipCancel").onclick = closeInvModal;
+  document.getElementById("ipSave").onclick = () => {
+    const name = document.getElementById("ipName").value.trim();
+    if (!name) { document.getElementById("ipErr").textContent = "Enter a product name."; return; }
+    const cat = document.getElementById("ipCat").value.trim();
+    const low = parseInt(document.getElementById("ipLow").value)||5;
+    if (existing) {
+      existing.name = name; existing.category = cat; existing.lowThreshold = low;
+    } else {
+      const id = invUid();
+      inv().products.push({ id, name, category: cat, lowThreshold: low });
+      const opening = parseInt((document.getElementById("ipOpening")||{}).value)||0;
+      if (opening > 0) {
+        inv().movements.push({ id: invUid(), productId: id, type: "in", qty: String(opening), destination: "", note: "Opening stock", who: "", dateISO: todayISO(), createdAt: Date.now() });
+      }
+    }
+    save(); closeInvModal(); renderInventory();
+  };
+}
+
+/* ---- Stock movement form (in/out) ---- */
+function openInvMoveForm(productId, type) {
+  const p = inv().products.find(x => x.id === productId);
+  if (!p) return;
+  const isOut = type === "out";
+  const title = isOut ? `Stock out — ${p.name}` : `Stock in — ${p.name}`;
+  document.getElementById("invModalTitle").textContent = title;
+  document.getElementById("invModalBody").innerHTML = `
+    <div class="fld"><label>Quantity</label><input id="imQty" inputmode="numeric" value="" placeholder="0" autofocus /></div>
+    ${isOut ? `<div class="fld"><label>Destination</label>
+      <div class="type-pick">
+        <button class="sel" data-dest="vending"><span class="ic">&#129302;</span>Vending machine</button>
+        <button data-dest="shop"><span class="ic">&#128722;</span>Shop floor</button>
+        <button data-dest="other"><span class="ic">&#128230;</span>Other</button>
+      </div>
+      <input id="imDestOther" style="display:none;margin-top:8px;" placeholder="Where?" />
+    </div>` : `<div class="fld"><label>Source (optional)</label><input id="imSource" value="" placeholder="e.g. Delivery, Production" /></div>`}
+    <div class="fld"><label>Date</label><input type="date" id="imDate" value="${todayISO()}" /></div>
+    <div class="fld"><label>Name / initials</label><input id="imWho" value="" placeholder="Who" /></div>
+    <div class="fld"><label>Note (optional)</label><input id="imNote" value="" placeholder="Any details" /></div>
+    <div class="wiz-err" id="imErr"></div>`;
+  document.getElementById("invModalFoot").innerHTML = `<button class="btn big" id="imCancel">Cancel</button><button class="btn primary big" id="imSave">${isOut ? "Remove stock" : "Add stock"}</button>`;
+  invBack.classList.add("open");
+
+  let selectedDest = isOut ? "vending" : "";
+  if (isOut) {
+    document.querySelectorAll("#invModalBody .type-pick button").forEach(b => {
+      b.onclick = () => {
+        document.querySelectorAll("#invModalBody .type-pick button").forEach(x => x.classList.remove("sel"));
+        b.classList.add("sel");
+        selectedDest = b.getAttribute("data-dest");
+        const otherInp = document.getElementById("imDestOther");
+        if (otherInp) otherInp.style.display = selectedDest === "other" ? "" : "none";
+      };
+    });
+  }
+
+  document.getElementById("imCancel").onclick = closeInvModal;
+  document.getElementById("imSave").onclick = () => {
+    const qty = parseInt(document.getElementById("imQty").value);
+    if (!qty || qty <= 0) { document.getElementById("imErr").textContent = "Enter a quantity."; return; }
+    const dateISO = document.getElementById("imDate").value || todayISO();
+    const who = (document.getElementById("imWho").value||"").trim();
+    const note = (document.getElementById("imNote").value||"").trim();
+    let destination = "";
+    if (isOut) {
+      destination = selectedDest === "other" ? (document.getElementById("imDestOther").value||"").trim() || "Other" : selectedDest;
+    } else {
+      destination = (document.getElementById("imSource")||{}).value || "";
+    }
+    inv().movements.push({
+      id: invUid(), productId, type, qty: String(qty),
+      destination, note, who, dateISO, createdAt: Date.now()
+    });
+    save(); closeInvModal(); renderInventory();
+  };
+}
+
+/* ---- Fill vending machine (bulk) ---- */
+document.getElementById("invFillVending").onclick = openVendingFillForm;
+
+function openVendingFillForm() {
+  const prods = inv().products.slice().sort((a,b) => a.name.localeCompare(b.name));
+  if (!prods.length) { alert("Add some products first."); return; }
+  document.getElementById("invModalTitle").textContent = "Fill vending machine";
+  document.getElementById("invModalBody").innerHTML = `
+    <p style="font-size:13px;color:var(--muted);margin:0 0 12px;">Enter how many of each product you're putting in the vending machine. Leave blank or 0 to skip.</p>
+    <div class="fld"><label>Date</label><input type="date" id="vfDate" value="${todayISO()}" /></div>
+    <div class="fld"><label>Name / initials</label><input id="vfWho" value="" placeholder="Who" /></div>
+    <div style="margin-top:14px;">
+    ${prods.map(p => {
+      const stock = prodStock(p.id);
+      return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <span style="flex:1;font-weight:600;">${escapeHtml(p.name)} <span style="color:var(--muted);font-size:12px;">(${stock} in stock)</span></span>
+        <input data-vfp="${p.id}" inputmode="numeric" style="width:70px;border:2px solid var(--line);border-radius:8px;padding:8px;text-align:center;font-size:16px;" placeholder="0" />
+      </div>`;
+    }).join("")}
+    </div>
+    <div class="wiz-err" id="vfErr"></div>`;
+  document.getElementById("invModalFoot").innerHTML = `<button class="btn big" id="vfCancel">Cancel</button><button class="btn primary big" id="vfSave">Log vending fill</button>`;
+  invBack.classList.add("open");
+  document.getElementById("vfCancel").onclick = closeInvModal;
+  document.getElementById("vfSave").onclick = () => {
+    const dateISO = document.getElementById("vfDate").value || todayISO();
+    const who = (document.getElementById("vfWho").value||"").trim();
+    let count = 0;
+    document.querySelectorAll("[data-vfp]").forEach(inp => {
+      const qty = parseInt(inp.value);
+      if (qty && qty > 0) {
+        inv().movements.push({
+          id: invUid(), productId: inp.getAttribute("data-vfp"),
+          type: "out", qty: String(qty), destination: "vending",
+          note: "Vending fill", who, dateISO, createdAt: Date.now()
+        });
+        count++;
+      }
+    });
+    if (!count) { document.getElementById("vfErr").textContent = "Enter at least one quantity."; return; }
+    save(); closeInvModal(); renderInventory();
+  };
+}
+
 /* ---- Shop CSV ---- */
 document.getElementById("shopExportBtn").onclick = exportShopCSV;
 function exportShopCSV() {
@@ -2049,6 +2397,24 @@ function exportShopCSV() {
     state.shop.catering.forEach(r => {
       lines.push([r.dateISO||"", r.visitors||"", r.foodSupplied||"", r.quantity||"", r.costPerHead||"", r.printName||"", r.signed||"", cateringRowTotal(r).toFixed(2)]);
     });
+  }
+  // Inventory section
+  if (inv().products.length) {
+    lines.push([]);
+    lines.push(["INVENTORY — STOCK LEVELS"]);
+    lines.push(["Product","Category","Current stock","Low threshold"]);
+    inv().products.slice().sort((a,b) => a.name.localeCompare(b.name)).forEach(p => {
+      lines.push([p.name, p.category||"", prodStock(p.id), p.lowThreshold||5]);
+    });
+    if (inv().movements.length) {
+      lines.push([]);
+      lines.push(["INVENTORY — MOVEMENTS"]);
+      lines.push(["Date","Product","Type","Qty","Destination/Source","Who","Note"]);
+      inv().movements.slice().sort((a,b) => (a.createdAt||0) - (b.createdAt||0)).forEach(m => {
+        const p = inv().products.find(x => x.id === m.productId);
+        lines.push([m.dateISO||"", p?p.name:"(deleted)", m.type==="in"?"Stock in":"Stock out", m.qty||"", m.destination||"", m.who||"", m.note||""]);
+      });
+    }
   }
   const csv = lines.map(r => r.map(csvCell).join(",")).join("\r\n");
   const blob = new Blob(["﻿"+csv], { type: "text/csv;charset=utf-8;" });
