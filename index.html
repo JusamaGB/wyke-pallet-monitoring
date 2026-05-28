@@ -318,6 +318,23 @@
   .item-total-line { text-align: right; font-size: 28px; font-weight: 800; margin: 8px 0 2px; color: var(--brand); }
   .note-on-acct { font-size: 12px; color: #7a5e0c; background: var(--gold-soft); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
 
+  /* ===== Catering table ===== */
+  .catering-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .catering-title { margin: 0; font-size: 20px; font-weight: 800; color: var(--ink); }
+  .catering-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--cream-line); }
+  .catering-table { width: 100%; border-collapse: collapse; background: var(--panel); min-width: 780px; }
+  .catering-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 10px 8px; background: var(--cream); white-space: nowrap; }
+  .catering-table th.wide { min-width: 180px; }
+  .catering-table td { padding: 4px 4px; border-top: 1px solid var(--cream-line); vertical-align: middle; }
+  .catering-table td input { border: 1.5px solid transparent; border-radius: 6px; padding: 8px 6px; font-size: 14px; width: 100%; font-family: inherit; background: transparent; }
+  .catering-table td input:focus { outline: none; border-color: var(--gold); background: var(--gold-soft); }
+  .catering-table td input[type="date"] { min-width: 130px; }
+  .catering-table td .ct-total { font-weight: 800; font-size: 15px; color: var(--brand); text-align: right; padding: 8px 6px; }
+  .catering-table td .ct-del { border: none; background: transparent; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+  .catering-table td .ct-del:hover { color: var(--err); }
+  .catering-grand-total { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-top: 14px; font-size: 18px; font-weight: 800; color: var(--brand); }
+  .catering-grand-total .label { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+
   /* ===== Burger menu (top bars) ===== */
   .menu-wrap { position: relative; }
   .menu-toggle { font-size: 18px; line-height: 1; padding: 7px 13px; }
@@ -325,6 +342,21 @@
   .menu-pop.open { display: flex; }
   .menu-pop .btn { width: 100%; text-align: left; color: var(--ink); background: transparent; border-color: transparent; font-weight: 600; }
   .menu-pop .btn:hover { background: var(--gold-soft); color: var(--ink); }
+
+  /* ===== Day lifecycle ===== */
+  .sheet-prestart { color: var(--muted); font-size: 13px; align-self: center; }
+  .sheet-prestart b { color: var(--brand); }
+  @keyframes addpulse {
+    0%   { box-shadow: 0 0 0 0 rgba(201,162,39,.65); }
+    70%  { box-shadow: 0 0 0 14px rgba(201,162,39,0); }
+    100% { box-shadow: 0 0 0 0 rgba(201,162,39,0); }
+  }
+  #btnGuided.pulse { animation: addpulse 1.1s ease-out 2; }
+  .finish-opts { display: flex; gap: 12px; margin: 6px 0 4px; }
+  .finish-opt { flex: 1; border: 2px solid var(--line); border-radius: 12px; padding: 16px 12px; background: #fff; cursor: pointer; text-align: center; transition: border-color .15s, background .15s; }
+  .finish-opt:hover { border-color: var(--gold); background: var(--gold-soft); }
+  .finish-opt b { display: block; font-size: 16px; }
+  .finish-opt span { font-size: 11px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -353,7 +385,8 @@
   <div class="spacer"></div>
   <span class="topbar-date" id="topbarDate" style="display:none;"></span>
   <div class="controls">
-    <button class="btn ghost" id="btnFinishDay">Finish day</button>
+    <button class="btn ghost" id="btnStartDay">Start day</button>
+    <button class="btn ghost" id="btnFinishDay" style="display:none;">Finish day</button>
     <div class="menu-wrap">
       <button class="btn ghost menu-toggle" id="pkMenuBtn" aria-label="Menu" title="Menu">&#9776;</button>
       <div class="menu-pop" id="pkMenu">
@@ -375,7 +408,7 @@
       <button class="btn" id="btnConfirmDate">Confirm</button>
     </div>
   </div>
-  <div class="field">
+  <div class="field" id="cheeseField">
     <label>Cheese type</label>
     <div class="cheese-wrap">
       <select id="cheeseType"></select>
@@ -383,6 +416,8 @@
     </div>
     <span class="cheese-hint" id="cheeseHint"></span>
   </div>
+
+  <div class="sheet-prestart" id="prestartHint" style="display:none;">Tap <b>Start day</b> to set the date of manufacture and cheese type, then log pallets.</div>
 
   <div class="summary">
     <button class="btn primary big" id="btnGuided">+ Add pallet</button>
@@ -434,6 +469,36 @@
   </div>
 </div>
 
+<!-- Start day modal -->
+<div class="modal-back" id="startBack">
+  <div class="modal">
+    <h3>Start the day</h3>
+    <p>Confirm the date of manufacture and cheese type to begin this sheet.</p>
+    <div class="fld"><label>Date of manufacture</label><input type="date" id="startDate" /></div>
+    <div class="fld"><label>Cheese type</label><select id="startCheese"></select></div>
+    <div class="err-msg" id="startErr"></div>
+    <div class="modal-actions">
+      <button class="btn" id="startCancel">Cancel</button>
+      <button class="btn primary" id="startConfirm">Start day</button>
+    </div>
+  </div>
+</div>
+
+<!-- Finish day modal -->
+<div class="modal-back" id="finishBack">
+  <div class="modal">
+    <h3>Finish &amp; close off the day</h3>
+    <p id="finishSub">Choose how to export this sheet. It'll then be closed off and a fresh sheet started.</p>
+    <div class="finish-opts">
+      <button class="finish-opt" id="finishCSV"><b>CSV</b><span>Universal &middot; opens anywhere</span></button>
+      <button class="finish-opt" id="finishXLSX"><b>Excel&nbsp;(.xlsx)</b><span>Formatted workbook with live totals</span></button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="finishCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Guided input wizard -->
 <div class="wiz-back" id="wizBack">
   <div class="wiz" id="wizCard">
@@ -470,6 +535,7 @@
 <div class="shop-tabs">
   <button class="shop-tab active" id="tabLog">Log</button>
   <button class="shop-tab" id="tabAccounts">Director accounts</button>
+  <button class="shop-tab" id="tabCatering">Catering</button>
 </div>
 
 <div class="shop-wrap" id="shopLogView">
@@ -483,6 +549,32 @@
 
 <div class="shop-wrap" id="shopAccountsView" style="display:none;">
   <div id="shopAccounts"></div>
+</div>
+
+<div class="shop-wrap" id="shopCateringView" style="display:none;">
+  <div class="catering-header">
+    <h2 class="catering-title">Catering</h2>
+    <button class="btn primary small" id="cateringAddRow">+ Add row</button>
+  </div>
+  <div class="catering-table-wrap">
+    <table class="catering-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Visitors</th>
+          <th class="wide">Food Supplied</th>
+          <th>Quantity</th>
+          <th>Cost Per Head</th>
+          <th>Print Name</th>
+          <th>Signed</th>
+          <th>Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="cateringBody"></tbody>
+    </table>
+  </div>
+  <div class="catering-grand-total" id="cateringGrandTotal"></div>
 </div>
 </div><!-- /shopApp -->
 
@@ -524,6 +616,7 @@
   <section class="shop-only" style="display:none;">
     <h3>Farm shop &mdash; data</h3>
     <button class="btn small danger" id="shopClear">Clear all shop entries</button>
+    <button class="btn small danger" id="cateringClear" style="margin-left:8px;">Clear catering entries</button>
     <p class="hint">Shop records live in this browser only (localStorage) for the trial &mdash; each phone is separate. Export CSV to keep a copy. A shared database is the next step for multi-phone use.</p>
   </section>
 
@@ -628,6 +721,7 @@ function load() {
     if (!s.vatSizes) s.vatSizes = { large: [1,2,3,4], small: [5,6] };
     if (s.palletPrefix === undefined) s.palletPrefix = "";
     if (!s.currentSheetId) s.currentSheetId = s.sheets[s.sheets.length-1].id;
+    s.sheets.forEach(sh => { if (sh.started === undefined) sh.started = (sh.dateConfirmed === true); });
     if (s.dept === undefined) s.dept = null;
     if (!s.shop || typeof s.shop !== "object") s.shop = seedShop();
     if (!Array.isArray(s.shop.directors)) s.shop.directors = seedShop().directors;
@@ -648,7 +742,7 @@ function blankRow() {
     code:"", reason:"", corrections:"", signedBy:"", signedAt:"", flagged:false, flagReason:"" };
 }
 function newSheet(date) {
-  return { id: uid(), date, cheeseType: "", changeoverUsed: false, dateConfirmed: false, createdAt: Date.now(), restartReason: "", rows: [ blankRow() ] };
+  return { id: uid(), date, cheeseType: "", changeoverUsed: false, dateConfirmed: false, started: false, createdAt: Date.now(), restartReason: "", rows: [ blankRow() ] };
 }
 
 function currentSheet() {
@@ -712,6 +806,11 @@ const els = {
   cheeseType: document.getElementById("cheeseType"),
   cheeseLock: document.getElementById("cheeseLock"),
   cheeseHint: document.getElementById("cheeseHint"),
+  cheeseField: document.getElementById("cheeseField"),
+  prestartHint: document.getElementById("prestartHint"),
+  btnGuided: document.getElementById("btnGuided"),
+  btnStartDay: document.getElementById("btnStartDay"),
+  btnFinishDay: document.getElementById("btnFinishDay"),
   vatPanel: document.getElementById("vatPanel"),
 };
 
@@ -778,13 +877,22 @@ function recompute() {
 /* ---------- Sheet picker ---------- */
 function renderSheetPicker() {
   const sheet = currentSheet();
+  const started = sheet.started === true;
   els.sheetDate.value = sheet.date;
-  if (sheet.dateConfirmed) {
-    els.dateField.style.display = "none";
+
+  // Day lifecycle: Start day → log pallets → Finish day
+  els.btnStartDay.style.display = started ? "none" : "";
+  els.btnFinishDay.style.display = started ? "" : "none";
+  els.cheeseField.style.display = started ? "" : "none";
+  els.prestartHint.style.display = started ? "none" : "";
+  els.btnGuided.disabled = !started;
+
+  // Date is set via the Start day modal, so the inline date field stays hidden.
+  els.dateField.style.display = "none";
+  if (started) {
     els.topbarDate.style.display = "";
     els.topbarDate.textContent = fmtSheetDate(sheet.date);
   } else {
-    els.dateField.style.display = "";
     els.topbarDate.style.display = "none";
   }
   renderCheeseField();
@@ -873,18 +981,69 @@ document.getElementById("btnNewSheet").onclick = () => {
   state.currentSheetId = s.id;
   save(); renderSheetPicker(); renderRows();
 };
-document.getElementById("btnFinishDay").onclick = () => {
+/* ---------- Day lifecycle (Start day / Finish day) ---------- */
+const startBack = document.getElementById("startBack");
+const finishBack = document.getElementById("finishBack");
+
+function openStartDay() {
+  const sheet = currentSheet();
+  document.getElementById("startDate").value = sheet.date || todayISO();
+  document.getElementById("startCheese").innerHTML = '<option value="">— select —</option>' +
+    state.cheeses.map(c => `<option ${c.name===sheet.cheeseType?"selected":""}>${escapeHtml(c.name)}</option>`).join("");
+  document.getElementById("startErr").textContent = "";
+  startBack.classList.add("open");
+  setTimeout(() => document.getElementById("startDate").focus(), 30);
+}
+function closeStartDay() { startBack.classList.remove("open"); }
+els.btnStartDay.onclick = openStartDay;
+document.getElementById("startCancel").onclick = closeStartDay;
+startBack.addEventListener("click", (e) => { if (e.target === startBack) closeStartDay(); });
+document.getElementById("startConfirm").onclick = () => {
+  const date = document.getElementById("startDate").value;
+  const cheese = document.getElementById("startCheese").value;
+  const err = document.getElementById("startErr");
+  if (!date) { err.textContent = "Pick the date of manufacture."; return; }
+  if (!cheese) { err.textContent = "Select the cheese type."; return; }
+  const sheet = currentSheet();
+  sheet.date = date;
+  sheet.cheeseType = cheese;
+  sheet.dateConfirmed = true;
+  sheet.started = true;
+  save();
+  closeStartDay();
+  renderSheetPicker(); renderRows();
+  els.btnGuided.classList.add("pulse");
+  setTimeout(() => els.btnGuided.classList.remove("pulse"), 2600);
+};
+
+function openFinishDay() {
   const sheet = currentSheet();
   const n = sheet.rows.filter(rowHasData).length;
-  if (!confirm("Finish this day's sheet (" + sheet.date + (sheet.cheeseType ? ", " + sheet.cheeseType : "") + ", " + n + " pallet" + (n===1?"":"s") + ") and start a fresh sheet?")) return;
+  document.getElementById("finishSub").textContent =
+    "Closing off " + fmtSheetDate(sheet.date) + (sheet.cheeseType ? " · " + sheet.cheeseType : "") +
+    " · " + n + " pallet" + (n===1?"":"s") + ". Choose an export — the sheet is then closed and a fresh one started.";
+  finishBack.classList.add("open");
+}
+function closeFinishModal() { finishBack.classList.remove("open"); }
+els.btnFinishDay.onclick = openFinishDay;
+document.getElementById("finishCancel").onclick = closeFinishModal;
+finishBack.addEventListener("click", (e) => { if (e.target === finishBack) closeFinishModal(); });
+document.getElementById("finishCSV").onclick = () => { exportCSV(); closeDay(); };
+document.getElementById("finishXLSX").onclick = () => { exportXLSX(); closeDay(); };
+
+function closeDay() {
+  const sheet = currentSheet();
   sheet.finishedAt = Date.now();
   const s = newSheet(todayISO());
   state.sheets.push(s);
   state.currentSheetId = s.id;
-  save(); renderSheetPicker(); renderRows();
-};
+  save();
+  closeFinishModal();
+  renderSheetPicker(); renderRows();
+}
+
 els.sheetDate.onchange = (e) => { if (e.target.value) { currentSheet().date = e.target.value; save(); renderSheetPicker(); } };
-document.getElementById("btnConfirmDate").onclick = () => { currentSheet().dateConfirmed = true; save(); renderSheetPicker(); };
+document.getElementById("btnConfirmDate").onclick = () => { const s = currentSheet(); s.dateConfirmed = true; s.started = true; save(); renderSheetPicker(); };
 
 function renderCheeseField() {
   const sheet = currentSheet();
@@ -969,7 +1128,8 @@ wizBack.addEventListener("click", (e) => { if (e.target === wizBack) closeWizard
 document.addEventListener("keydown", (e) => { if (wiz && e.key === "Escape") closeWizard(); });
 
 function openWizard() {
-  wiz = { step: 0, vatAck: false, data: { pallet:"", palletSuffix:"", vatA:"", vatB:"", blocksA:"", blocksB:"", code:"", reason:"" } };
+  if (!currentSheet().started) { openStartDay(); return; }
+  wiz = { step: 0, data: { pallet:"", palletSuffix:"", vatA:"", vatB:"", blocksA:"", blocksB:"", code:"", reason:"" } };
   wizBack.classList.add("open");
   renderWizard();
 }
@@ -1038,22 +1198,21 @@ function renderWizard() {
     }
     foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
   } else if (wiz.step === 1) {
-    const vw = wizVatStepWarn();
-    const showWarn = vw && wiz.vatAck;
-    body = `<label class="q">Which VAT(s) did this pallet come from?</label>
+    body = `<label class="q">First VAT — number &amp; its blocks</label>
       <div class="wiz-two">
         <div><small>VAT A</small><input class="wiz-input" id="wizVatA" inputmode="numeric" value="${escapeAttr(d.vatA)}" placeholder="—" /></div>
-        <div><small>VAT B</small><input class="wiz-input" id="wizVatB" inputmode="numeric" value="${escapeAttr(d.vatB)}" placeholder="—" /></div>
+        <div><small>Blocks from VAT A</small><input class="wiz-input" id="wizBlocksA" inputmode="numeric" value="${escapeAttr(d.blocksA)}" placeholder="0" /></div>
       </div>
-      <div class="wiz-hint">Fill one side, or both if the pallet was split between vats.</div>
-      <div class="wiz-vatwarn" id="wizVatStepWarn">${showWarn ? escapeHtml(vw) : ""}</div>`;
-    foot = backBtn + `<button class="btn ${showWarn ? "flag" : "primary"} big" id="wizNextBtn">${showWarn ? "Continue anyway" : "Next"}</button>`;
+      <div class="wiz-total" id="wizTotalBox"></div>
+      <div class="wiz-vatwarn" id="wizVatWarn"></div>`;
+    foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
   } else if (wiz.step === 2) {
-    body = `<label class="q">Blocks from each VAT</label>
+    body = `<label class="q">Second VAT — split pallet? <span style="text-transform:none;font-weight:400;">(optional)</span></label>
       <div class="wiz-two">
-        <div><small>Blocks A</small><input class="wiz-input" id="wizBlocksA" inputmode="numeric" value="${escapeAttr(d.blocksA)}" placeholder="0" /></div>
-        <div><small>Blocks B</small><input class="wiz-input" id="wizBlocksB" inputmode="numeric" value="${escapeAttr(d.blocksB)}" placeholder="0" /></div>
+        <div><small>VAT B</small><input class="wiz-input" id="wizVatB" inputmode="numeric" value="${escapeAttr(d.vatB)}" placeholder="—" /></div>
+        <div><small>Blocks from VAT B</small><input class="wiz-input" id="wizBlocksB" inputmode="numeric" value="${escapeAttr(d.blocksB)}" placeholder="0" /></div>
       </div>
+      <div class="wiz-hint">Leave both empty if the whole pallet came from one VAT.</div>
       <div class="wiz-total" id="wizTotalBox"></div>
       <div class="wiz-vatwarn" id="wizVatWarn"></div>`;
     foot = backBtn + `<button class="btn primary big" id="wizNextBtn">Next</button>`;
@@ -1096,7 +1255,7 @@ function renderWizard() {
   wizBodyEl.innerHTML = body;
   wizFootEl.innerHTML = foot;
   attachWizHandlers();
-  if (wiz.step === 2) updateWizTotal();
+  if (wiz.step === 1 || wiz.step === 2) updateWizTotal();
   if (wiz.step === 4) updateWizSignState();
   applyWizWarn();
 }
@@ -1120,7 +1279,7 @@ function attachWizHandlers() {
       d.pallet = palletEl.value;
     }
   };
-  bind("wizVatA","vatA", () => { wiz.vatAck = false; }); bind("wizVatB","vatB", () => { wiz.vatAck = false; });
+  bind("wizVatA","vatA", updateWizTotal); bind("wizVatB","vatB", updateWizTotal);
   bind("wizBlocksA","blocksA", updateWizTotal); bind("wizBlocksB","blocksB", updateWizTotal);
   bind("wizReason","reason", updateWizSignState);
 
@@ -1132,7 +1291,7 @@ function attachWizHandlers() {
   });
 
   if (wiz.step === 0) updatePalletHint();
-  const focusId = {0:"wizPallet", 1:"wizVatA", 2:"wizBlocksA", 4:"wizPin"}[wiz.step];
+  const focusId = {0:"wizPallet", 1:"wizVatA", 2:"wizVatB", 4:"wizPin"}[wiz.step];
   if (focusId) setTimeout(() => { const el = byId(focusId); if (el) el.focus(); }, 40);
 }
 function updatePalletHint() {
@@ -1200,24 +1359,23 @@ function wizVatWarnings() {
   }
   return [...new Set(warns)];
 }
-// VAT-step check (before blocks): warn if a new VAT is started before an earlier one is finished.
-function wizVatStepWarn() {
-  const d = wiz.data;
-  const totals = sheetVatTotals(currentSheet());
-  let current = null;
-  for (const eStr of Object.keys(totals)) {
-    const e = parseInt(eStr, 10); if (isNaN(e)) continue;
-    const t = cheeseTargetFor(vatSizeOf(eStr));
-    if (t && totals[eStr] < t && (current === null || e < current)) current = e;
+// Per-step side check: at a VAT+blocks step, flag a half-filled side (blocks without a VAT, or a VAT without blocks).
+function sideErrorForStep(d, step) {
+  const aVat = (d.vatA || "").trim() !== "";
+  const aBlk = (parseInt(d.blocksA, 10) || 0) > 0;
+  const bVat = (d.vatB || "").trim() !== "";
+  const bBlk = (parseInt(d.blocksB, 10) || 0) > 0;
+  if (step === 1) {
+    if (aBlk && !aVat) return "Blocks entered but no VAT — set which VAT they came from.";
+    if (aVat && !aBlk) return "VAT A set but no blocks — enter how many came from it.";
+    return null;
   }
-  if (current === null) return null;
-  const entered = [d.vatA, d.vatB].map(v => parseInt((v || "").trim(), 10)).filter(n => !isNaN(n));
-  if (!entered.length || entered.includes(current)) return null;
-  if (entered.some(n => n > current)) {
-    const t = cheeseTargetFor(vatSizeOf(String(current)));
-    return "VAT " + current + " is only " + totals[String(current)] + " / " + t + " — finish it before starting another VAT.";
+  if (step === 2) {
+    if (bBlk && !bVat) return "Blocks entered but no VAT — set which VAT they came from.";
+    if (bVat && !bBlk) return "VAT B set but no blocks — enter how many, or clear VAT B.";
+    return null;
   }
-  return null;
+  return palletSideError(d);
 }
 // Hard error: a side has blocks without a VAT number, or a VAT number without blocks.
 function palletSideError(d) {
@@ -1234,12 +1392,12 @@ function palletSideError(d) {
 function applyWizWarn() {
   const card = document.getElementById("wizCard");
   if (!card || !wiz) return;
-  const active = (wiz.step === 2 || wiz.step === 4);
-  const sideErr = active ? palletSideError(wiz.data) : null;
+  const active = (wiz.step === 1 || wiz.step === 2 || wiz.step === 4);
+  const sideErr = active ? sideErrorForStep(wiz.data, wiz.step) : null;
   const warns = (active && !sideErr) ? wizVatWarnings() : [];
   const el = document.getElementById("wizVatWarn");
   if (el) {
-    if (sideErr && wiz.step === 2) { el.className = "wiz-vatwarn hard"; el.innerHTML = escapeHtml(sideErr); }
+    if (sideErr && (wiz.step === 1 || wiz.step === 2)) { el.className = "wiz-vatwarn hard"; el.innerHTML = escapeHtml(sideErr); }
     else if (warns.length) { el.className = "wiz-vatwarn"; el.innerHTML = "Incorrect input — " + escapeHtml(warns.join("; ")) + ". Check this before saving."; }
     else { el.className = "wiz-vatwarn"; el.innerHTML = ""; }
   }
@@ -1256,10 +1414,18 @@ function wizNext() {
     }
   }
   if (wiz.step === 1) {
-    const vw = wizVatStepWarn();
-    if (vw && !wiz.vatAck) { wiz.vatAck = true; renderWizard(); return; }
+    const aVat = (d.vatA || "").trim() !== "";
+    const aBlk = (parseInt(d.blocksA, 10) || 0) > 0;
+    if (!aVat || !aBlk) {
+      let msg = "Enter VAT A and its blocks to continue.";
+      if (aBlk && !aVat) msg = "Enter which VAT these blocks came from.";
+      else if (aVat && !aBlk) msg = "Enter the blocks from VAT A.";
+      const el = document.getElementById("wizVatWarn");
+      if (el) { el.className = "wiz-vatwarn hard"; el.innerHTML = escapeHtml(msg); }
+      return;
+    }
   }
-  if (wiz.step === 2 && palletSideError(d)) { applyWizWarn(); return; }
+  if (wiz.step === 2 && sideErrorForStep(d, 2)) { applyWizWarn(); return; }
   if (wiz.step < WIZ_TOTAL - 1) { wiz.step++; renderWizard(); }
 }
 
@@ -1315,6 +1481,110 @@ function exportCSV() {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `wyke-pallets-${sheet.date}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* ---------- Excel (.xlsx) export — self-contained, no libraries ---------- */
+let _crcTable = null;
+function crc32(u8) {
+  if (!_crcTable) {
+    _crcTable = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); _crcTable[n] = c >>> 0; }
+  }
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) crc = (_crcTable[(crc ^ u8[i]) & 0xFF] ^ (crc >>> 8)) >>> 0;
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function zipStore(files) {
+  const enc = new TextEncoder();
+  const chunks = [], central = [];
+  let offset = 0;
+  const u16 = (a, n) => a.push(n & 255, (n >>> 8) & 255);
+  const u32 = (a, n) => a.push(n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255);
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const data = f.bytes;
+    const crc = crc32(data), size = data.length;
+    const lh = [];
+    u32(lh, 0x04034b50); u16(lh, 20); u16(lh, 0); u16(lh, 0); u16(lh, 0); u16(lh, 0);
+    u32(lh, crc); u32(lh, size); u32(lh, size); u16(lh, name.length); u16(lh, 0);
+    const lhU8 = new Uint8Array(lh);
+    chunks.push(lhU8, name, data);
+    const cd = [];
+    u32(cd, 0x02014b50); u16(cd, 20); u16(cd, 20); u16(cd, 0); u16(cd, 0); u16(cd, 0); u16(cd, 0);
+    u32(cd, crc); u32(cd, size); u32(cd, size); u16(cd, name.length); u16(cd, 0); u16(cd, 0); u16(cd, 0); u16(cd, 0); u32(cd, 0); u32(cd, offset);
+    central.push({ head: new Uint8Array(cd), name });
+    offset += lhU8.length + name.length + size;
+  }
+  const cdStart = offset;
+  let cdSize = 0;
+  for (const c of central) { chunks.push(c.head, c.name); cdSize += c.head.length + c.name.length; }
+  const eo = [];
+  u32(eo, 0x06054b50); u16(eo, 0); u16(eo, 0); u16(eo, files.length); u16(eo, files.length); u32(eo, cdSize); u32(eo, cdStart); u16(eo, 0);
+  chunks.push(new Uint8Array(eo));
+  let total = 0; for (const c of chunks) total += c.length;
+  const out = new Uint8Array(total); let p = 0; for (const c of chunks) { out.set(c, p); p += c.length; }
+  return out;
+}
+function colLetter(n) { let s = ""; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+
+function exportXLSX() {
+  const sheet = currentSheet();
+  const rows = sheet.rows.filter(rowHasData);
+  const headers = ["#","Pallet No.","VAT A","VAT B","Blocks A","Blocks B","Total","Status","Initials","Keep Separate","Reason","Corrections"];
+  const sX = (ref, v) => `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapeHtml(String(v))}</t></is></c>`;
+  const nX = (ref, v) => `<c r="${ref}"><v>${v}</v></c>`;
+  let xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="2" max="2" width="16" customWidth="1"/><col min="8" max="12" width="16" customWidth="1"/></cols><sheetData>`;
+  let r = 0;
+  r++; xml += `<row r="${r}">${sX("A"+r, "Wyke — Pallet & Cheese Monitoring")}</row>`;
+  r++; xml += `<row r="${r}">${sX("A"+r, "Date of manufacture: " + fmtSheetDate(sheet.date))}</row>`;
+  r++; xml += `<row r="${r}">${sX("A"+r, "Cheese type: " + (sheet.cheeseType || "—"))}</row>`;
+  r++; // blank spacer row
+  r++; xml += `<row r="${r}">` + headers.map((h,i) => sX(colLetter(i+1)+r, h)).join("") + `</row>`;
+  const firstData = r + 1;
+  let sumE = 0, sumF = 0, sumG = 0;
+  rows.forEach((row, idx) => {
+    r++;
+    const st = rowStatus(row);
+    const cells = [];
+    cells.push(nX("A"+r, idx+1));
+    cells.push(sX("B"+r, row.pallet || ""));
+    cells.push(sX("C"+r, row.vatA || ""));
+    cells.push(sX("D"+r, row.vatB || ""));
+    if (row.blocksA !== "") { const v = parseInt(row.blocksA,10)||0; cells.push(nX("E"+r, v)); sumE += v; }
+    if (row.blocksB !== "") { const v = parseInt(row.blocksB,10)||0; cells.push(nX("F"+r, v)); sumF += v; }
+    if (!(row.blocksA === "" && row.blocksB === "")) { cells.push(nX("G"+r, st.total)); sumG += st.total; }
+    cells.push(sX("H"+r, row.flagged ? ("FLAGGED — " + row.flagReason) : (st.kind==="idle" ? "" : st.msg)));
+    cells.push(sX("I"+r, row.signedBy || ""));
+    cells.push(sX("J"+r, codeMeaningInline(row.code)));
+    cells.push(sX("K"+r, row.reason || ""));
+    cells.push(sX("L"+r, row.corrections || ""));
+    xml += `<row r="${r}">` + cells.join("") + `</row>`;
+  });
+  const lastData = r;
+  if (rows.length) {
+    r++;
+    const fCell = (col, val) => `<c r="${col}${r}"><f>SUM(${col}${firstData}:${col}${lastData})</f><v>${val}</v></c>`;
+    xml += `<row r="${r}">` + sX("A"+r, "TOTALS") + fCell("E", sumE) + fCell("F", sumF) + fCell("G", sumG) + `</row>`;
+  }
+  xml += `</sheetData></worksheet>`;
+
+  const CT = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const WB = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Pallets" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const WBR = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+  const enc = new TextEncoder();
+  const zip = zipStore([
+    { name: "[Content_Types].xml", bytes: enc.encode(CT) },
+    { name: "_rels/.rels", bytes: enc.encode(RELS) },
+    { name: "xl/workbook.xml", bytes: enc.encode(WB) },
+    { name: "xl/_rels/workbook.xml.rels", bytes: enc.encode(WBR) },
+    { name: "xl/worksheets/sheet1.xml", bytes: enc.encode(xml) }
+  ]);
+  const blob = new Blob([zip], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `wyke-pallets-${sheet.date}.xlsx`;
   document.body.appendChild(a); a.click(); a.remove();
 }
 
@@ -1426,7 +1696,8 @@ function seedShop() {
   return {
     directors: [ {name:"Director A"}, {name:"Director B"}, {name:"Director C"} ],
     giveTypes: ["Raffle","Giveaway","Donation","Hamper","Sponsorship"],
-    entries: []
+    entries: [],
+    catering: []
   };
 }
 function shopUid() { return "e" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
@@ -1474,14 +1745,19 @@ document.addEventListener("click", () => document.querySelectorAll(".menu-pop.op
 /* ---- Tabs / filters ---- */
 document.getElementById("tabLog").onclick = () => { shopTab = "log"; renderShop(); };
 document.getElementById("tabAccounts").onclick = () => { shopTab = "accounts"; renderShop(); };
+document.getElementById("tabCatering").onclick = () => { shopTab = "catering"; renderShop(); };
 document.querySelectorAll("#shopApp .chip-filter").forEach(c => c.onclick = () => { shopFilter = c.getAttribute("data-f"); renderShopEntries(); });
 
 function renderShop() {
   document.getElementById("tabLog").classList.toggle("active", shopTab === "log");
   document.getElementById("tabAccounts").classList.toggle("active", shopTab === "accounts");
+  document.getElementById("tabCatering").classList.toggle("active", shopTab === "catering");
   document.getElementById("shopLogView").style.display = shopTab === "log" ? "" : "none";
   document.getElementById("shopAccountsView").style.display = shopTab === "accounts" ? "" : "none";
-  if (shopTab === "log") renderShopEntries(); else renderShopAccounts();
+  document.getElementById("shopCateringView").style.display = shopTab === "catering" ? "" : "none";
+  if (shopTab === "log") renderShopEntries();
+  else if (shopTab === "accounts") renderShopAccounts();
+  else if (shopTab === "catering") renderCatering();
 }
 
 function entryItemsHTML(e) {
@@ -1683,6 +1959,72 @@ document.getElementById("directorsBody").addEventListener("click", (e) => {
 });
 document.getElementById("addDirector").onclick = () => { state.shop.directors.push({name:"New director"}); save(); renderDirectors(); };
 document.getElementById("shopClear").onclick = () => { if (confirm("Delete ALL shop entries? This cannot be undone.")) { state.shop.entries = []; save(); renderShop(); } };
+document.getElementById("cateringClear").onclick = () => { if (confirm("Delete ALL catering entries? This cannot be undone.")) { state.shop.catering = []; save(); renderCatering(); } };
+
+/* ---- Catering module ---- */
+function cateringUid() { return "ct" + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function cateringRowTotal(r) { return (parseFloat(r.quantity)||0) * (parseFloat(r.costPerHead)||0); }
+
+if (!state.shop.catering) state.shop.catering = [];
+
+document.getElementById("cateringAddRow").onclick = () => {
+  state.shop.catering.push({
+    id: cateringUid(), dateISO: todayISO(), visitors: "", foodSupplied: "",
+    quantity: "", costPerHead: "", printName: "", signed: ""
+  });
+  save(); renderCatering();
+};
+
+function renderCatering() {
+  const body = document.getElementById("cateringBody");
+  const rows = state.shop.catering;
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px 10px;">No catering entries yet &mdash; tap &ldquo;+ Add row&rdquo; to start.</td></tr>`;
+    document.getElementById("cateringGrandTotal").innerHTML = "";
+    return;
+  }
+  body.innerHTML = rows.map((r, i) => {
+    const total = cateringRowTotal(r);
+    return `<tr data-ci="${i}">
+      <td><input type="date" data-cf="dateISO" value="${escapeAttr(r.dateISO||"")}" /></td>
+      <td><input data-cf="visitors" value="${escapeAttr(r.visitors||"")}" placeholder="e.g. 12" inputmode="numeric" /></td>
+      <td><input data-cf="foodSupplied" value="${escapeAttr(r.foodSupplied||"")}" placeholder="e.g. Sandwiches &amp; cake" /></td>
+      <td><input data-cf="quantity" value="${escapeAttr(r.quantity||"")}" placeholder="0" inputmode="numeric" /></td>
+      <td><input data-cf="costPerHead" value="${escapeAttr(r.costPerHead||"")}" placeholder="0.00" inputmode="decimal" /></td>
+      <td><input data-cf="printName" value="${escapeAttr(r.printName||"")}" placeholder="Name" /></td>
+      <td><input data-cf="signed" value="${escapeAttr(r.signed||"")}" placeholder="Initials" /></td>
+      <td><div class="ct-total">${gbp(total)}</div></td>
+      <td><button class="ct-del" data-cdel="${i}" title="Remove row">&times;</button></td>
+    </tr>`;
+  }).join("");
+  const grandTotal = rows.reduce((s, r) => s + cateringRowTotal(r), 0);
+  document.getElementById("cateringGrandTotal").innerHTML = `<span class="label">Grand total</span> ${gbp(grandTotal)}`;
+}
+
+document.getElementById("cateringBody").addEventListener("input", (e) => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const i = +tr.getAttribute("data-ci");
+  const field = e.target.getAttribute("data-cf");
+  if (field && state.shop.catering[i]) {
+    state.shop.catering[i][field] = e.target.value;
+    save();
+    // Update row total live
+    const totalEl = tr.querySelector(".ct-total");
+    if (totalEl) totalEl.textContent = gbp(cateringRowTotal(state.shop.catering[i]));
+    // Update grand total
+    const grandTotal = state.shop.catering.reduce((s, r) => s + cateringRowTotal(r), 0);
+    document.getElementById("cateringGrandTotal").innerHTML = `<span class="label">Grand total</span> ${gbp(grandTotal)}`;
+  }
+});
+document.getElementById("cateringBody").addEventListener("click", (e) => {
+  const idx = e.target.getAttribute("data-cdel");
+  if (idx != null) {
+    if (confirm("Delete this catering row?")) {
+      state.shop.catering.splice(+idx, 1);
+      save(); renderCatering();
+    }
+  }
+});
 
 /* ---- Shop CSV ---- */
 document.getElementById("shopExportBtn").onclick = exportShopCSV;
@@ -1699,6 +2041,15 @@ function exportShopCSV() {
         it.name||"", it.qty||"", it.unitPrice||"", lt.toFixed(2), tot.toFixed(2), status, e.notes||"", e.loggedAt?fmtTime(e.loggedAt):"" ]);
     });
   });
+  // Catering section
+  if (state.shop.catering && state.shop.catering.length) {
+    lines.push([]);
+    lines.push(["CATERING"]);
+    lines.push(["Date","Visitors","Food Supplied","Quantity","Cost Per Head","Print Name","Signed","Total"]);
+    state.shop.catering.forEach(r => {
+      lines.push([r.dateISO||"", r.visitors||"", r.foodSupplied||"", r.quantity||"", r.costPerHead||"", r.printName||"", r.signed||"", cateringRowTotal(r).toFixed(2)]);
+    });
+  }
   const csv = lines.map(r => r.map(csvCell).join(",")).join("\r\n");
   const blob = new Blob(["﻿"+csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");
